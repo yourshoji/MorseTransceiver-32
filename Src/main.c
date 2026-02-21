@@ -85,7 +85,7 @@ typedef struct
 {
   char character;
   const uint16_t *pattern_data;
-  size_t length; // For holding the result of sizeof() which will never be negative (_t)
+  size_t length; // count the total morse code used in each alphabet by calculating in bytes, size_t is used for holding the result of sizeof()
 } MorseMapping_t;
 
 // [PATTERN DATA ARRAYS]
@@ -191,9 +191,9 @@ int main(void)
   MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
   htim2.Instance = TIM2;
-  htim2.Init.Prescaler = 7199; // 1ms per tick
-  htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim2.Init.Period = 1299; // initial dummy value
+  htim2.Init.Prescaler = 7199; // 72 MHz / 7199+1 == 10kHz (0.1 ms)
+  htim2.Init.CounterMode = TIM_COUNTERMODE_UP; // counter mode activated
+  htim2.Init.Period = 1299; // 1300 (1299+1) * 0.1 ms == 130 ms
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   HAL_TIM_Base_Init(&htim2);
