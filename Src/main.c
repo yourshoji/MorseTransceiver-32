@@ -343,7 +343,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     {
       MSG_INDEX = 0;
 
-      if (LOOKUP_AND_LOAD_PATTERN(MSG[MSG_INDEX]))
+      if (LOOKUP_AND_LOAD_PATTERN(MSG[MSG_INDEX])) 
       {
         MORSE_RUNNING = true;
         STEP_COUNTER = 0;
