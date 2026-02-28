@@ -18,7 +18,6 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include "adc.h"
 #include "tim.h"
 #include "gpio.h"
 
@@ -49,13 +48,34 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
+extern TIM_HandleTypeDef htim3;
+extern TIM_HandleTypeDef htim4;
 TIM_HandleTypeDef htim2;
 
 bool ESTOP = false;
 bool PREV_ESTOP = false;
-volatile uint16_t micReadingRaw;
-volatile uint8_t micReadingScaled;
-volatile int heartbeat_counter = 0;
+// volatile uint16_t micReadingRaw;
+// volatile uint8_t micReadingScaled;
+// volatile int heartbeat_counter = 0;
+
+// rotary encoder name-input variables
+volatile char name_buffer[10] = {0}; // reserve and clear space
+volatile int name_index = 0;
+volatile bool confirm_send_flag = false;
+volatile bool ready_to_send_flag = false;
+volatile bool ready_to_reset_flag = false;
+
+// morse transmission state
+volatile size_t MSG_INDEX = 0; // Tracks the current character being processed
+bool PREV_BUTTON_STATE = true;
+volatile bool MORSE_RUNNING = false;
+volatile int STEP_COUNTER = 0;
+
+// prototype for lookup helper (defined later in file)
+bool LOOKUP_AND_LOAD_PATTERN(char character);
+
+// telling the compiler that this variable actually exist in another source file (.c)
+extern const uint16_t PATTERN_SPACE[];
 
 /* USER CODE END PV */
 
@@ -188,7 +208,8 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_TIM2_Init();
-  MX_ADC1_Init();
+  MX_TIM3_Init();
+  MX_TIM4_Init();
   /* USER CODE BEGIN 2 */
   htim2.Instance = TIM2;
   htim2.Init.Prescaler = 7199; // 72 MHz / 7199+1 == 10kHz (0.1 ms)
@@ -199,6 +220,10 @@ int main(void)
   HAL_TIM_Base_Init(&htim2);
   HAL_TIM_Base_Start_IT(&htim2); // timer interrupt
 
+  /* rotary encoder peripherals (encoder on TIM3, PWM on TIM4) */
+  HAL_TIM_Encoder_Start(&htim3, TIM_CHANNEL_ALL);
+  HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_1);
+
 
   /* USER CODE END 2 */
 
@@ -206,33 +231,103 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-    HAL_ADC_Start(&hadc1);
-    HAL_ADC_PollForConversion(&hadc1, 10); // Wait for 10ms, if the conversion isn't done, output an error
+    // ---- rotary encoder + switch handling ----
+    uint32_t raw_cnt = __HAL_TIM_GET_COUNTER(&htim3);
+    uint32_t letter_index = raw_cnt / 4; // % 26;  // Wrap to 0-25 (A-Z)
+    char current_letter = 'A' + letter_index;
+    uint32_t pwm_val = (letter_index * 1000) / 25;
+    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, pwm_val);
 
-    // GPIO_PinState BUTTON_STATE = HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_2);
-    micReadingRaw = HAL_ADC_GetValue(&hadc1);
-    micReadingScaled = micReadingRaw / 16; // 12 bit (4096 -> 256) for humanly adjustable
-    uint8_t micThreshold = 100;
-    
-    if (micReadingScaled > micThreshold){
-      HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_SET);
+    // push button on PB0: add / delete / send sequence
+    if (HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_0) == GPIO_PIN_RESET) 
+    {
+      uint32_t press_start = HAL_GetTick();
+      while (HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_0) == GPIO_PIN_RESET) 
+      {
+        uint32_t elapsed = HAL_GetTick() - press_start;
+        if (elapsed < 500)
+        {
+          // add feedback
+            HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_SET);
+            HAL_Delay(50);
+            HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);
+        }
+        if (elapsed >= 500 && elapsed < 1500) 
+        {
+          // delete feedback
+          HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_SET);
+          HAL_Delay(100);
+          HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);
+          HAL_Delay(100);
+        } 
+        else if (elapsed >= 1500 && elapsed < 3000) 
+        {
+          // send feedback
+          HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_SET);
+          HAL_Delay(1500);
+          HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);
+        }
+      }
+
+      uint32_t duration = HAL_GetTick() - press_start;
+      // SEND & ADD
+      if (duration < 500) 
+      {
+        if (ready_to_send_flag) 
+        {
+          confirm_send_flag = true;
+          ready_to_reset_flag = true;
+        } 
+        else if (name_index < (int)(sizeof(name_buffer) - 1)) 
+        {
+          name_buffer[name_index++] = current_letter;
+          name_buffer[name_index] = '\0';
+        }
+      } 
+      // DELETE
+      else if (duration < 1500) 
+      {
+        if (name_index > 0) 
+        {
+          name_index--;
+          name_buffer[name_index] = '\0';
+        }
+      } 
+      // CODE SEND
+      else 
+      {
+        ready_to_send_flag = true;
+      }
+      HAL_Delay(50);
     }
-    else {
-      HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);
+
+    // RESET*
+    if (ready_to_send_flag && ready_to_reset_flag && !confirm_send_flag) 
+    {
+      HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_SET);
+      HAL_Delay(100);
+      HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);
+
+      ready_to_send_flag = false;
+      ready_to_reset_flag = false;
+      name_index = 0;
+      name_buffer[0] = '\0';
     }
 
-    HAL_ADC_Stop(&hadc1);
+    // if send signal was triggered start morse transmission
+    if (confirm_send_flag && !MORSE_RUNNING && name_buffer[0] != '\0') 
+    {
+      MSG_INDEX = 0;
+      if (LOOKUP_AND_LOAD_PATTERN(name_buffer[MSG_INDEX])) 
+      {
+        MORSE_RUNNING = true;
+        STEP_COUNTER = 0; // make sure we start from beginning
+      }
+      /* consume send flag so it doesn't retrigger repeatedly */
+      confirm_send_flag = false;
+    }
 
-    // if (BUTTON_STATE == GPIO_PIN_RESET && PREV_ESTOP == false)
-    // {
-    //   HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
-    //   HAL_Delay(200); // simple debounce
-    // }
-    // PREV_ESTOP = (BUTTON_STATE == GPIO_PIN_RESET);
-
-    heartbeat_counter++;
-
-    HAL_Delay(1);
+    HAL_Delay(10);
 
     /* USER CODE END WHILE */
 
@@ -249,7 +344,6 @@ void SystemClock_Config(void)
 {
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
-  RCC_PeriphCLKInitTypeDef PeriphClkInit = {0};
 
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
@@ -279,25 +373,13 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
-  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_ADC;
-  PeriphClkInit.AdcClockSelection = RCC_ADCPCLK2_DIV2;
-  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
-  {
-    Error_Handler();
-  }
 }
 
 /* USER CODE BEGIN 4 */
-// GLOBAL VARIABLES
-const char MSG[] = "HELLO ";     // The message you want to transmit, the last char must be left blank
-volatile size_t MSG_INDEX = 0; // Tracks the current character being processed
 
 // Pointers to the active pattern and its length (must be set by the lookup function)
 volatile const uint16_t *CURRENT_PATTERN_PTR = NULL; // Points to the PATTERN w/o the need to reassign it
 volatile size_t CURRENT_PATTERN_LENGTH = 0;
-
-bool PREV_BUTTON_STATE = true;
-volatile bool MORSE_RUNNING = false;
 
 // telling the compiler that this variable actually exist in another source file (.c)
 extern const uint16_t PATTERN_SPACE[];
@@ -333,8 +415,9 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   if (htim->Instance != TIM2)
     return;
 
-  // STATIC prevents the value from being reset after the function is re-called or finished (value persist)
-  static int STEP_COUNTER = 0; // For tracking the MORSE CODE unit in the array (morsePattern)
+  // STEP_COUNTER is now a global variable; it must be reset on start.
+  // (previously static local to retain value between calls)
+
 
   // EDGE DETECTION, checks if the sequence should start
   if (BUTTON_STATE == GPIO_PIN_RESET && PREV_BUTTON_STATE == GPIO_PIN_SET)
@@ -343,7 +426,8 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     {
       MSG_INDEX = 0;
 
-      if (LOOKUP_AND_LOAD_PATTERN(MSG[MSG_INDEX])) 
+      // use the dynamically entered name_buffer instead of fixed MSG
+      if (LOOKUP_AND_LOAD_PATTERN(name_buffer[MSG_INDEX])) 
       {
         MORSE_RUNNING = true;
         STEP_COUNTER = 0;
@@ -375,7 +459,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
       MSG_INDEX++; // Advance to the next character
 
       // If the character is "null" (none), terminate it.
-      if (MSG[MSG_INDEX] == '\0')
+      if (name_buffer[MSG_INDEX] == '\0')
       {
         MORSE_RUNNING = false;
         HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_RESET);
@@ -384,7 +468,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
       }
 
       // Loads next character
-      if (LOOKUP_AND_LOAD_PATTERN(MSG[MSG_INDEX]))
+      if (LOOKUP_AND_LOAD_PATTERN(name_buffer[MSG_INDEX]))
       {
         STEP_COUNTER = 0;
       }

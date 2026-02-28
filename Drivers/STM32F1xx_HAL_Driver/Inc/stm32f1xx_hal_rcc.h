@@ -1101,7 +1101,7 @@ typedef struct
   *         The reset flags are RCC_FLAG_PINRST, RCC_FLAG_PORRST, RCC_FLAG_SFTRST,
   *         RCC_FLAG_IWDGRST, RCC_FLAG_WWDGRST, RCC_FLAG_LPWRRST
   */
-#define __HAL_RCC_CLEAR_RESET_FLAGS() (*(__IO uint32_t *)RCC_CSR_RMVF_BB = ENABLE)
+#define __HAL_RCC_CLEAR_ready_to_reset_flagS() (*(__IO uint32_t *)RCC_CSR_RMVF_BB = ENABLE)
 
 /** @brief  Check RCC flag is set or not.
   * @param  __FLAG__ specifies the flag to check.
