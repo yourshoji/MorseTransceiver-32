@@ -52,12 +52,6 @@ extern TIM_HandleTypeDef htim3;
 extern TIM_HandleTypeDef htim4;
 TIM_HandleTypeDef htim2;
 
-bool ESTOP = false;
-bool PREV_ESTOP = false;
-// volatile uint16_t micReadingRaw;
-// volatile uint8_t micReadingScaled;
-// volatile int heartbeat_counter = 0;
-
 // rotary encoder name-input variables
 volatile char name_buffer[10] = {0}; // reserve and clear space
 volatile int name_index = 0;
@@ -233,7 +227,7 @@ int main(void)
   {
     // ---- rotary encoder + switch handling ----
     uint32_t raw_cnt = __HAL_TIM_GET_COUNTER(&htim3);
-    uint32_t letter_index = raw_cnt / 4; // % 26;  // Wrap to 0-25 (A-Z)
+    uint32_t letter_index = raw_cnt / 4;
     char current_letter = 'A' + letter_index;
     uint32_t pwm_val = (letter_index * 1000) / 25;
     __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, pwm_val);
