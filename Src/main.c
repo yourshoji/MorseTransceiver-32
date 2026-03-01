@@ -1,3 +1,6 @@
+// for git, dont forget to remove this
+// cd C:/Users/Shoji/Documents/STM32PIO/myMorseTransceiver
+
 /* USER CODE BEGIN Header */
 /**
   ******************************************************************************
@@ -60,10 +63,9 @@ volatile bool ready_to_send_flag = false;
 volatile bool ready_to_reset_flag = false;
 
 // morse transmission state
-volatile size_t MSG_INDEX = 0; // Tracks the current character being processed
-bool PREV_BUTTON_STATE = true;
-volatile bool MORSE_RUNNING = false;
-volatile int STEP_COUNTER = 0;
+volatile size_t msg_index = 0; // Tracks the current character being processed
+volatile bool morse_running = false;
+volatile int step_counter = 0;
 
 // prototype for lookup helper (defined later in file)
 void handle_letter_selection(char input_char);
@@ -75,7 +77,7 @@ bool lookup_and_load_pattern(char character);
 
 
 // telling the compiler that this variable actually exist in another source file (.c)
-extern const uint16_t PATTERN_SPACE[];
+extern const uint16_t pattern_space[];
 
 /* USER CODE END PV */
 
@@ -89,17 +91,17 @@ void SystemClock_Config(void);
 /* USER CODE BEGIN 0 */
 
 // Define durations
-// const uint16_t TIME_DOT = 1300;  // 130ms
-// const uint16_t TIME_DASH = 3900; // 390ms
-// const uint16_t GAP_SYM = 1300;   // Gap between parts of a letter (130ms)
-// const uint16_t GAP_CHAR = 3900;  // Gap between letters (390ms)
-// const uint16_t GAP_WORD = 9100;  // Gap between words (910ms)
+// const uint16_t time_dot = 1300;  // 130ms
+// const uint16_t time_dash = 3900; // 390ms
+// const uint16_t gap_sym = 1300;   // Gap between parts of a letter (130ms)
+// const uint16_t gap_char = 3900;  // Gap between letters (390ms)
+// const uint16_t gap_word = 9100;  // Gap between words (910ms)
 
-#define TIME_DOT 1300 // 130ms
-#define TIME_DASH 3900  // 390ms
-#define GAP_SYM 1300  // Gap between parts of a letter (130ms)
-#define GAP_CHAR 3900 // Gap between letters (390ms)
-#define GAP_WORD 9100 // Gap between words (910ms)
+#define time_dot 1300 // 130ms
+#define time_dash 3900  // 390ms
+#define gap_sym 1300  // Gap between parts of a letter (130ms)
+#define gap_char 3900 // Gap between letters (390ms)
+#define gap_word 9100 // Gap between words (910ms)
 
 typedef struct
 {
@@ -111,70 +113,70 @@ typedef struct
 // [PATTERN DATA ARRAYS]
 // Format: { Sound, Silence, Sound, Silence }
 // MORSE PATTERNS A–Z
-const uint16_t PATTERN_A[] = {TIME_DOT, GAP_SYM, TIME_DASH, GAP_CHAR};                           // .-
-const uint16_t PATTERN_B[] = {TIME_DASH, GAP_SYM, TIME_DOT, GAP_SYM, TIME_DOT, GAP_SYM, TIME_DOT, GAP_CHAR};  // -...
-const uint16_t PATTERN_C[] = {TIME_DASH, GAP_SYM, TIME_DOT, GAP_SYM, TIME_DASH, GAP_SYM, TIME_DOT, GAP_CHAR}; // -.-.
-const uint16_t PATTERN_D[] = {TIME_DASH, GAP_SYM, TIME_DOT, GAP_SYM, TIME_DOT, GAP_CHAR};        // -..
-const uint16_t PATTERN_E[] = {TIME_DOT, GAP_CHAR};                                               // .
-const uint16_t PATTERN_F[] = {TIME_DOT, GAP_SYM, TIME_DOT, GAP_SYM, TIME_DASH, GAP_SYM, TIME_DOT, GAP_CHAR};   // ..-.
-const uint16_t PATTERN_G[] = {TIME_DASH, GAP_SYM, TIME_DASH, GAP_SYM, TIME_DOT, GAP_CHAR};       // --.
-const uint16_t PATTERN_H[] = {TIME_DOT, GAP_SYM, TIME_DOT, GAP_SYM, TIME_DOT, GAP_SYM, TIME_DOT, GAP_CHAR};    // ....
-const uint16_t PATTERN_I[] = {TIME_DOT, GAP_SYM, TIME_DOT, GAP_CHAR};                            // ..
-const uint16_t PATTERN_J[] = {TIME_DOT, GAP_SYM, TIME_DASH, GAP_SYM, TIME_DASH, GAP_SYM, TIME_DASH, GAP_CHAR}; // .---
-const uint16_t PATTERN_K[] = {TIME_DASH, GAP_SYM, TIME_DOT, GAP_SYM, TIME_DASH, GAP_CHAR};       // -.-
-const uint16_t PATTERN_L[] = {TIME_DOT, GAP_SYM, TIME_DASH, GAP_SYM, TIME_DOT, GAP_SYM, TIME_DOT, GAP_CHAR};   // .-..
-const uint16_t PATTERN_M[] = {TIME_DASH, GAP_SYM, TIME_DASH, GAP_CHAR};                          // --
-const uint16_t PATTERN_N[] = {TIME_DASH, GAP_SYM, TIME_DOT, GAP_CHAR};                           // -.
-const uint16_t PATTERN_O[] = {TIME_DASH, GAP_SYM, TIME_DASH, GAP_SYM, TIME_DASH, GAP_CHAR};      // ---
-const uint16_t PATTERN_P[] = {TIME_DOT, GAP_SYM, TIME_DASH, GAP_SYM, TIME_DASH, GAP_SYM, TIME_DOT, GAP_CHAR};  // .--.
-const uint16_t PATTERN_Q[] = {TIME_DASH, GAP_SYM, TIME_DASH, GAP_SYM, TIME_DOT, GAP_SYM, TIME_DASH, GAP_CHAR}; // --.-
-const uint16_t PATTERN_R[] = {TIME_DOT, GAP_SYM, TIME_DASH, GAP_SYM, TIME_DOT, GAP_CHAR};        // .-.
-const uint16_t PATTERN_S[] = {TIME_DOT, GAP_SYM, TIME_DOT, GAP_SYM, TIME_DOT, GAP_CHAR};         // ...
-const uint16_t PATTERN_T[] = {TIME_DASH, GAP_CHAR};                                              // -
-const uint16_t PATTERN_U[] = {TIME_DOT, GAP_SYM, TIME_DOT, GAP_SYM, TIME_DASH, GAP_CHAR};        // ..-
-const uint16_t PATTERN_V[] = {TIME_DOT, GAP_SYM, TIME_DOT, GAP_SYM, TIME_DOT, GAP_SYM, TIME_DASH, GAP_CHAR};   // ...-
-const uint16_t PATTERN_W[] = {TIME_DOT, GAP_SYM, TIME_DASH, GAP_SYM, TIME_DASH, GAP_CHAR};       // .--
-const uint16_t PATTERN_X[] = {TIME_DASH, GAP_SYM, TIME_DOT, GAP_SYM, TIME_DOT, GAP_SYM, TIME_DASH, GAP_CHAR};  // -..-
-const uint16_t PATTERN_Y[] = {TIME_DASH, GAP_SYM, TIME_DOT, GAP_SYM, TIME_DASH, GAP_SYM, TIME_DASH, GAP_CHAR}; // -.--
-const uint16_t PATTERN_Z[] = {TIME_DASH, GAP_SYM, TIME_DASH, GAP_SYM, TIME_DOT, GAP_SYM, TIME_DOT, GAP_CHAR};  // --..
+const uint16_t pattern_a[] = {time_dot, gap_sym, time_dash, gap_char};                           // .-
+const uint16_t pattern_b[] = {time_dash, gap_sym, time_dot, gap_sym, time_dot, gap_sym, time_dot, gap_char};  // -...
+const uint16_t pattern_c[] = {time_dash, gap_sym, time_dot, gap_sym, time_dash, gap_sym, time_dot, gap_char}; // -.-.
+const uint16_t pattern_d[] = {time_dash, gap_sym, time_dot, gap_sym, time_dot, gap_char};        // -..
+const uint16_t pattern_e[] = {time_dot, gap_char};                                               // .
+const uint16_t pattern_f[] = {time_dot, gap_sym, time_dot, gap_sym, time_dash, gap_sym, time_dot, gap_char};   // ..-.
+const uint16_t pattern_g[] = {time_dash, gap_sym, time_dash, gap_sym, time_dot, gap_char};       // --.
+const uint16_t pattern_h[] = {time_dot, gap_sym, time_dot, gap_sym, time_dot, gap_sym, time_dot, gap_char};    // ....
+const uint16_t pattern_i[] = {time_dot, gap_sym, time_dot, gap_char};                            // ..
+const uint16_t pattern_j[] = {time_dot, gap_sym, time_dash, gap_sym, time_dash, gap_sym, time_dash, gap_char}; // .---
+const uint16_t pattern_k[] = {time_dash, gap_sym, time_dot, gap_sym, time_dash, gap_char};       // -.-
+const uint16_t pattern_l[] = {time_dot, gap_sym, time_dash, gap_sym, time_dot, gap_sym, time_dot, gap_char};   // .-..
+const uint16_t pattern_m[] = {time_dash, gap_sym, time_dash, gap_char};                          // --
+const uint16_t pattern_n[] = {time_dash, gap_sym, time_dot, gap_char};                           // -.
+const uint16_t pattern_o[] = {time_dash, gap_sym, time_dash, gap_sym, time_dash, gap_char};      // ---
+const uint16_t pattern_p[] = {time_dot, gap_sym, time_dash, gap_sym, time_dash, gap_sym, time_dot, gap_char};  // .--.
+const uint16_t pattern_q[] = {time_dash, gap_sym, time_dash, gap_sym, time_dot, gap_sym, time_dash, gap_char}; // --.-
+const uint16_t pattern_r[] = {time_dot, gap_sym, time_dash, gap_sym, time_dot, gap_char};        // .-.
+const uint16_t pattern_s[] = {time_dot, gap_sym, time_dot, gap_sym, time_dot, gap_char};         // ...
+const uint16_t pattern_t[] = {time_dash, gap_char};                                              // -
+const uint16_t pattern_u[] = {time_dot, gap_sym, time_dot, gap_sym, time_dash, gap_char};        // ..-
+const uint16_t pattern_v[] = {time_dot, gap_sym, time_dot, gap_sym, time_dot, gap_sym, time_dash, gap_char};   // ...-
+const uint16_t pattern_w[] = {time_dot, gap_sym, time_dash, gap_sym, time_dash, gap_char};       // .--
+const uint16_t pattern_x[] = {time_dash, gap_sym, time_dot, gap_sym, time_dot, gap_sym, time_dash, gap_char};  // -..-
+const uint16_t pattern_y[] = {time_dash, gap_sym, time_dot, gap_sym, time_dash, gap_sym, time_dash, gap_char}; // -.--
+const uint16_t pattern_z[] = {time_dash, gap_sym, time_dash, gap_sym, time_dot, gap_sym, time_dot, gap_char};  // --..
 
 // SPACE
-const uint16_t PATTERN_SPACE[] = {GAP_WORD};
+const uint16_t pattern_space[] = {gap_word};
 
 // LOOKUP TABLE
-const MorseMapping_t MORSE_LOOKUP_TABLE[] = {
-    {'A', PATTERN_A, sizeof(PATTERN_A)/sizeof(uint16_t)},
-    {'B', PATTERN_B, sizeof(PATTERN_B)/sizeof(uint16_t)},
-    {'C', PATTERN_C, sizeof(PATTERN_C)/sizeof(uint16_t)},
-    {'D', PATTERN_D, sizeof(PATTERN_D)/sizeof(uint16_t)},
-    {'E', PATTERN_E, sizeof(PATTERN_E)/sizeof(uint16_t)},
-    {'F', PATTERN_F, sizeof(PATTERN_F)/sizeof(uint16_t)},
-    {'G', PATTERN_G, sizeof(PATTERN_G)/sizeof(uint16_t)},
-    {'H', PATTERN_H, sizeof(PATTERN_H)/sizeof(uint16_t)},
-    {'I', PATTERN_I, sizeof(PATTERN_I)/sizeof(uint16_t)},
-    {'J', PATTERN_J, sizeof(PATTERN_J)/sizeof(uint16_t)},
-    {'K', PATTERN_K, sizeof(PATTERN_K)/sizeof(uint16_t)},
-    {'L', PATTERN_L, sizeof(PATTERN_L)/sizeof(uint16_t)},
-    {'M', PATTERN_M, sizeof(PATTERN_M)/sizeof(uint16_t)},
-    {'N', PATTERN_N, sizeof(PATTERN_N)/sizeof(uint16_t)},
-    {'O', PATTERN_O, sizeof(PATTERN_O)/sizeof(uint16_t)},
-    {'P', PATTERN_P, sizeof(PATTERN_P)/sizeof(uint16_t)},
-    {'Q', PATTERN_Q, sizeof(PATTERN_Q)/sizeof(uint16_t)},
-    {'R', PATTERN_R, sizeof(PATTERN_R)/sizeof(uint16_t)},
-    {'S', PATTERN_S, sizeof(PATTERN_S)/sizeof(uint16_t)},
-    {'T', PATTERN_T, sizeof(PATTERN_T)/sizeof(uint16_t)},
-    {'U', PATTERN_U, sizeof(PATTERN_U)/sizeof(uint16_t)},
-    {'V', PATTERN_V, sizeof(PATTERN_V)/sizeof(uint16_t)},
-    {'W', PATTERN_W, sizeof(PATTERN_W)/sizeof(uint16_t)},
-    {'X', PATTERN_X, sizeof(PATTERN_X)/sizeof(uint16_t)},
-    {'Y', PATTERN_Y, sizeof(PATTERN_Y)/sizeof(uint16_t)},
-    {'Z', PATTERN_Z, sizeof(PATTERN_Z)/sizeof(uint16_t)},
+const MorseMapping_t morse_lookup_table[] = {
+    {'A', pattern_a, sizeof(pattern_a)/sizeof(uint16_t)},
+    {'B', pattern_b, sizeof(pattern_b)/sizeof(uint16_t)},
+    {'C', pattern_c, sizeof(pattern_c)/sizeof(uint16_t)},
+    {'D', pattern_d, sizeof(pattern_d)/sizeof(uint16_t)},
+    {'E', pattern_e, sizeof(pattern_e)/sizeof(uint16_t)},
+    {'F', pattern_f, sizeof(pattern_f)/sizeof(uint16_t)},
+    {'G', pattern_g, sizeof(pattern_g)/sizeof(uint16_t)},
+    {'H', pattern_h, sizeof(pattern_h)/sizeof(uint16_t)},
+    {'I', pattern_i, sizeof(pattern_i)/sizeof(uint16_t)},
+    {'J', pattern_j, sizeof(pattern_j)/sizeof(uint16_t)},
+    {'K', pattern_k, sizeof(pattern_k)/sizeof(uint16_t)},
+    {'L', pattern_l, sizeof(pattern_l)/sizeof(uint16_t)},
+    {'M', pattern_m, sizeof(pattern_m)/sizeof(uint16_t)},
+    {'N', pattern_n, sizeof(pattern_n)/sizeof(uint16_t)},
+    {'O', pattern_o, sizeof(pattern_o)/sizeof(uint16_t)},
+    {'P', pattern_p, sizeof(pattern_p)/sizeof(uint16_t)},
+    {'Q', pattern_q, sizeof(pattern_q)/sizeof(uint16_t)},
+    {'R', pattern_r, sizeof(pattern_r)/sizeof(uint16_t)},
+    {'S', pattern_s, sizeof(pattern_s)/sizeof(uint16_t)},
+    {'T', pattern_t, sizeof(pattern_t)/sizeof(uint16_t)},
+    {'U', pattern_u, sizeof(pattern_u)/sizeof(uint16_t)},
+    {'V', pattern_v, sizeof(pattern_v)/sizeof(uint16_t)},
+    {'W', pattern_w, sizeof(pattern_w)/sizeof(uint16_t)},
+    {'X', pattern_x, sizeof(pattern_x)/sizeof(uint16_t)},
+    {'Y', pattern_y, sizeof(pattern_y)/sizeof(uint16_t)},
+    {'Z', pattern_z, sizeof(pattern_z)/sizeof(uint16_t)},
 
-    {' ', PATTERN_SPACE, sizeof(PATTERN_SPACE)/sizeof(uint16_t)}
+    {' ', pattern_space, sizeof(pattern_space)/sizeof(uint16_t)}
 };
 
 // Total size of the lookup table
-const size_t MORSE_LOOKUP_LENGTH = sizeof(MORSE_LOOKUP_TABLE) / sizeof(MORSE_LOOKUP_TABLE[0]);
+const size_t morse_lookup_length = sizeof(morse_lookup_table) / sizeof(morse_lookup_table[0]);
 
 /* USER CODE END 0 */
 
@@ -292,11 +294,11 @@ void SystemClock_Config(void)
 /* USER CODE BEGIN 4 */
 
 // Pointers to the active pattern and its length (must be set by the lookup function)
-volatile const uint16_t *CURRENT_PATTERN_PTR = NULL; // Points to the PATTERN w/o the need to reassign it
-volatile size_t CURRENT_PATTERN_LENGTH = 0;
+volatile const uint16_t *current_pattern_ptr = NULL; // Points to the PATTERN w/o the need to reassign it
+volatile size_t current_pattern_length = 0;
 
 // telling the compiler that this variable actually exist in another source file (.c)
-extern const uint16_t PATTERN_SPACE[];
+extern const uint16_t pattern_space[];
 
 void handle_letter_selection(char input_char){
   // ENC_SW: add / delete / send sequence
@@ -398,13 +400,13 @@ void reset_after_commit()
 
 void morse_commit()
 {
-  if (confirm_send_flag && !MORSE_RUNNING && name_buffer[0] != '\0') 
+  if (confirm_send_flag && !morse_running && name_buffer[0] != '\0') 
   {
-    MSG_INDEX = 0;
-    if (lookup_and_load_pattern(name_buffer[MSG_INDEX])) 
+    msg_index = 0;
+    if (lookup_and_load_pattern(name_buffer[msg_index])) 
     {
-      MORSE_RUNNING = true;
-      STEP_COUNTER = 0; // make sure we start from beginning
+      morse_running = true;
+      step_counter = 0; // make sure we start from beginning
     }
     /* consume send flag so it doesn't retrigger repeatedly */
     confirm_send_flag = false;
@@ -416,15 +418,15 @@ bool lookup_and_load_pattern(char character)
   // Convert character to uppercase to match the lookup table
   char lookup_char = toupper((unsigned char)character);
 
-  // Loop through the MORSE LOOKUP TABLE array
-  for (size_t i = 0; i < MORSE_LOOKUP_LENGTH; i++)
+  // Loop through the morse lookup table array
+  for (size_t i = 0; i < morse_lookup_length; i++)
   {
-    if (MORSE_LOOKUP_TABLE[i].character == lookup_char)
+    if (morse_lookup_table[i].character == lookup_char)
     {
 
-      // Pointer to the matching PATTERN DATA (eg., PATTERN_A)
-      CURRENT_PATTERN_PTR = MORSE_LOOKUP_TABLE[i].pattern_data; // Current Pattern
-      CURRENT_PATTERN_LENGTH = MORSE_LOOKUP_TABLE[i].length;    // Current Pattern Length
+      // Pointer to the matching PATTERN DATA (eg., pattern_a)
+      current_pattern_ptr = morse_lookup_table[i].pattern_data; // Current Pattern
+      current_pattern_length = morse_lookup_table[i].length;    // Current Pattern Length
 
       return true;
     }
@@ -435,41 +437,18 @@ bool lookup_and_load_pattern(char character)
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
-  // Read button
-  GPIO_PinState BUTTON_STATE = HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_2);
-
   // If we use pointer *htim to access the chosen htim's Instance and it's not TIM2, stop the function.
   if (htim->Instance != TIM2)
     return;
 
-  // STEP_COUNTER is now a global variable; it must be reset on start.
-  // (previously static local to retain value between calls)
-
-
-  // EDGE DETECTION, checks if the sequence should start
-  if (BUTTON_STATE == GPIO_PIN_RESET && PREV_BUTTON_STATE == GPIO_PIN_SET)
-  {
-    if (MORSE_RUNNING == false) // Activating MORSE and STEP
-    {
-      MSG_INDEX = 0;
-
-      // use the dynamically entered name_buffer instead of fixed MSG
-      if (lookup_and_load_pattern(name_buffer[MSG_INDEX])) 
-      {
-        MORSE_RUNNING = true;
-        STEP_COUNTER = 0;
-      }
-    }
-  }
-
   // OUTPUT LOGIC, runs every tick if the flag is set
-  if (MORSE_RUNNING == true)
+  if (morse_running == true)
   {
     // Set the next ARR (Counter) to reach only the required MORSE CODE unit (accurately)
-    __HAL_TIM_SET_AUTORELOAD(&htim2, CURRENT_PATTERN_PTR[STEP_COUNTER] - 1);
+    __HAL_TIM_SET_AUTORELOAD(&htim2, current_pattern_ptr[step_counter] - 1);
 
     // MORSE CODE is an alternating sequence of sound and silence (sound, silence, sound)
-    if (STEP_COUNTER % 2 == 0) // Checks if the current position is either EVEN or ODD
+    if (step_counter % 2 == 0) // Checks if the current position is either EVEN or ODD
     {
       HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_SET); // If EVEN
     }
@@ -478,39 +457,39 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
       HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_RESET); // If ODD
     }
     // Moving on to the next piece of MORSE CODE
-    STEP_COUNTER++;
+    step_counter++;
 
     // Checks for character end, if it is ended, forward to the next
-    if (STEP_COUNTER >= CURRENT_PATTERN_LENGTH)
+    if (step_counter >= current_pattern_length)
     {
-      MSG_INDEX++; // Advance to the next character
+      msg_index++; // Advance to the next character
 
       // If the character is "null" (none), terminate it.
-      if (name_buffer[MSG_INDEX] == '\0')
+      if (name_buffer[msg_index] == '\0')
       {
-        MORSE_RUNNING = false;
+        morse_running = false;
         HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_RESET);
-        MSG_INDEX = 0; // set back to default
+        msg_index = 0; // set back to default
         return;
       }
 
       // Loads next character
-      if (lookup_and_load_pattern(name_buffer[MSG_INDEX]))
+      if (lookup_and_load_pattern(name_buffer[msg_index]))
       {
-        STEP_COUNTER = 0;
+        step_counter = 0;
       }
       else
       {
-        CURRENT_PATTERN_PTR = PATTERN_SPACE;
-        CURRENT_PATTERN_LENGTH = 1;
-        STEP_COUNTER = 0;
+        current_pattern_ptr = pattern_space;
+        current_pattern_length = 1;
+        step_counter = 0;
       }
     }
 
     // Detects if the entire MORSE CODE sequence is finished, sent.
   }
 
-  PREV_BUTTON_STATE = BUTTON_STATE;
+
 }
 
 /* USER CODE END 4 */
