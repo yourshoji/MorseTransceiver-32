@@ -66,7 +66,13 @@ volatile bool MORSE_RUNNING = false;
 volatile int STEP_COUNTER = 0;
 
 // prototype for lookup helper (defined later in file)
-bool LOOKUP_AND_LOAD_PATTERN(char character);
+void handle_letter_selection(char input_char);
+void status_feedback_handler(uint32_t timer);
+void handle_morse_input(uint32_t timer, char letter);
+void reset_after_commit();
+void morse_commit();
+bool lookup_and_load_pattern(char character);
+
 
 // telling the compiler that this variable actually exist in another source file (.c)
 extern const uint16_t PATTERN_SPACE[];
@@ -228,100 +234,14 @@ int main(void)
     // ---- rotary encoder + switch handling ----
     uint32_t raw_cnt = __HAL_TIM_GET_COUNTER(&htim3);
     uint32_t letter_index = raw_cnt / 4;
-    char current_letter = 'A' + letter_index;
     uint32_t pwm_val = (letter_index * 1000) / 25;
+    char current_letter = 'A' + letter_index;
+    
+    // Debugging via LED (yellow)
     __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, pwm_val);
 
-    // push button on PB0: add / delete / send sequence
-    if (HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_0) == GPIO_PIN_RESET) 
-    {
-      uint32_t press_start = HAL_GetTick();
-      while (HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_0) == GPIO_PIN_RESET) 
-      {
-        uint32_t elapsed = HAL_GetTick() - press_start;
-        if (elapsed < 500)
-        {
-          // add feedback
-            HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_SET);
-            HAL_Delay(50);
-            HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);
-        }
-        if (elapsed >= 500 && elapsed < 1500) 
-        {
-          // delete feedback
-          HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_SET);
-          HAL_Delay(100);
-          HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);
-          HAL_Delay(100);
-        } 
-        else if (elapsed >= 1500 && elapsed < 3000) 
-        {
-          // send feedback
-          HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_SET);
-          HAL_Delay(1500);
-          HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);
-        }
-      }
-
-      uint32_t duration = HAL_GetTick() - press_start;
-      // SEND & ADD
-      if (duration < 500) 
-      {
-        if (ready_to_send_flag) 
-        {
-          confirm_send_flag = true;
-          ready_to_reset_flag = true;
-        } 
-        else if (name_index < (int)(sizeof(name_buffer) - 1)) 
-        {
-          name_buffer[name_index++] = current_letter;
-          name_buffer[name_index] = '\0';
-        }
-      } 
-      // DELETE
-      else if (duration < 1500) 
-      {
-        if (name_index > 0) 
-        {
-          name_index--;
-          name_buffer[name_index] = '\0';
-        }
-      } 
-      // CODE SEND
-      else 
-      {
-        ready_to_send_flag = true;
-      }
-      HAL_Delay(50);
-    }
-
-    // RESET*
-    if (ready_to_send_flag && ready_to_reset_flag && !confirm_send_flag) 
-    {
-      HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_SET);
-      HAL_Delay(100);
-      HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);
-
-      ready_to_send_flag = false;
-      ready_to_reset_flag = false;
-      name_index = 0;
-      name_buffer[0] = '\0';
-    }
-
-    // if send signal was triggered start morse transmission
-    if (confirm_send_flag && !MORSE_RUNNING && name_buffer[0] != '\0') 
-    {
-      MSG_INDEX = 0;
-      if (LOOKUP_AND_LOAD_PATTERN(name_buffer[MSG_INDEX])) 
-      {
-        MORSE_RUNNING = true;
-        STEP_COUNTER = 0; // make sure we start from beginning
-      }
-      /* consume send flag so it doesn't retrigger repeatedly */
-      confirm_send_flag = false;
-    }
-
-    HAL_Delay(10);
+    // reserves for MODE_SELECT *DO NOT FORGET U 4 EYES*
+    handle_letter_selection(current_letter);
 
     /* USER CODE END WHILE */
 
@@ -378,7 +298,120 @@ volatile size_t CURRENT_PATTERN_LENGTH = 0;
 // telling the compiler that this variable actually exist in another source file (.c)
 extern const uint16_t PATTERN_SPACE[];
 
-bool LOOKUP_AND_LOAD_PATTERN(char character)
+void handle_letter_selection(char input_char){
+  // ENC_SW: add / delete / send sequence
+  if (HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_0) == GPIO_PIN_RESET) 
+    {
+      uint32_t press_start = HAL_GetTick();
+
+      while (HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_0) == GPIO_PIN_RESET)
+      {
+        uint32_t elapsed = HAL_GetTick() - press_start;
+        status_feedback_handler(elapsed);
+      }
+      uint32_t duration = HAL_GetTick() - press_start;
+      handle_morse_input(duration, input_char);
+      
+      HAL_Delay(50);
+    }
+
+    // RESET*
+    reset_after_commit();
+    // ACTION*
+    morse_commit();
+
+    HAL_Delay(10);
+}
+
+void status_feedback_handler(uint32_t timer)
+{
+  if (timer < 500)
+  {
+    // add feedback
+      HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_SET);
+      HAL_Delay(50);
+      HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);
+  }
+  if (timer >= 500 && timer < 1500) 
+  {
+    // delete feedback
+    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_SET);
+    HAL_Delay(100);
+    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);
+    HAL_Delay(100);
+  } 
+  else if (timer >= 1500 && timer < 3000) 
+  {
+    // send feedback
+    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_SET);
+    HAL_Delay(1500);
+    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);
+  }
+}
+
+void handle_morse_input(uint32_t timer, char letter)
+{
+  // ADD & CONFIRM SEND
+  if (timer < 500) 
+    {
+      if (ready_to_send_flag) 
+      {
+        confirm_send_flag = true;
+        ready_to_reset_flag = true;
+      } 
+      else if (name_index < (int)(sizeof(name_buffer) - 1)) 
+      {
+        name_buffer[name_index++] = letter;
+        name_buffer[name_index] = '\0';
+      }
+    } 
+    // DELETE
+    else if (timer < 1500) 
+    {
+      if (name_index > 0) 
+      {
+        name_index--;
+        name_buffer[name_index] = '\0';
+      }
+    } 
+    // CODE SEND
+    else 
+    {
+      ready_to_send_flag = true;
+    }
+}
+
+void reset_after_commit()
+{
+  if (ready_to_send_flag && ready_to_reset_flag && !confirm_send_flag) 
+  {
+    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_SET);
+    HAL_Delay(100);
+    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);
+
+    ready_to_send_flag = false;
+    ready_to_reset_flag = false;
+    name_index = 0;
+    name_buffer[0] = '\0';
+  }
+}
+
+void morse_commit()
+{
+  if (confirm_send_flag && !MORSE_RUNNING && name_buffer[0] != '\0') 
+  {
+    MSG_INDEX = 0;
+    if (lookup_and_load_pattern(name_buffer[MSG_INDEX])) 
+    {
+      MORSE_RUNNING = true;
+      STEP_COUNTER = 0; // make sure we start from beginning
+    }
+    /* consume send flag so it doesn't retrigger repeatedly */
+    confirm_send_flag = false;
+  }
+}
+
+bool lookup_and_load_pattern(char character)
 {
   // Convert character to uppercase to match the lookup table
   char lookup_char = toupper((unsigned char)character);
@@ -421,7 +454,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
       MSG_INDEX = 0;
 
       // use the dynamically entered name_buffer instead of fixed MSG
-      if (LOOKUP_AND_LOAD_PATTERN(name_buffer[MSG_INDEX])) 
+      if (lookup_and_load_pattern(name_buffer[MSG_INDEX])) 
       {
         MORSE_RUNNING = true;
         STEP_COUNTER = 0;
@@ -462,7 +495,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
       }
 
       // Loads next character
-      if (LOOKUP_AND_LOAD_PATTERN(name_buffer[MSG_INDEX]))
+      if (lookup_and_load_pattern(name_buffer[MSG_INDEX]))
       {
         STEP_COUNTER = 0;
       }
