@@ -35,6 +35,11 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
+typedef enum {
+  MODE_SELECT = 0,
+  MODE_RECEIVE,
+  MODE_MANUAL
+} SystemMode_t;
 
 /* USER CODE END PTD */
 
@@ -54,6 +59,11 @@
 extern TIM_HandleTypeDef htim3;
 extern TIM_HandleTypeDef htim4;
 TIM_HandleTypeDef htim2;
+
+// mode selection
+volatile SystemMode_t current_mode = MODE_SELECT;
+GPIO_PinState prev_mode_sw_state = false;
+
 
 // rotary encoder name-input variables
 volatile char name_buffer[10] = {0}; // reserve and clear space
@@ -235,15 +245,35 @@ int main(void)
   {
     // ---- rotary encoder + switch handling ----
     uint32_t raw_cnt = __HAL_TIM_GET_COUNTER(&htim3);
-    uint32_t letter_index = raw_cnt / 4;
+    uint32_t letter_index = (raw_cnt / 4) % 26; // wrap it up as a safety
     uint32_t pwm_val = (letter_index * 1000) / 25;
     char current_letter = 'A' + letter_index;
-    
-    // Debugging via LED (yellow)
-    __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, pwm_val);
+    volatile GPIO_PinState mode_sw_state = HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_2);
 
-    // reserves for MODE_SELECT *DO NOT FORGET U 4 EYES*
-    handle_letter_selection(current_letter);
+    // mode changer
+    if (mode_sw_state == GPIO_PIN_RESET && prev_mode_sw_state == GPIO_PIN_SET)
+    {
+      current_mode = (current_mode + 1) % 3;
+      HAL_Delay(50);
+    }
+    prev_mode_sw_state = mode_sw_state;
+
+    switch (current_mode) {
+      case MODE_SELECT:
+        // ASCII debugging via LED (yellow)
+        __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, pwm_val); // we should be able to set this in numeric when the UI is done
+        handle_letter_selection(current_letter);
+        break;
+      case MODE_RECEIVE:
+        // max brightness: receive mode
+        __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 100);
+        // handle_ldr_receive;
+        break;
+      case MODE_MANUAL:
+        __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 500);
+        // handle_manual_tap;
+        break;
+    }
 
     /* USER CODE END WHILE */
 
@@ -300,7 +330,8 @@ volatile size_t current_pattern_length = 0;
 // telling the compiler that this variable actually exist in another source file (.c)
 extern const uint16_t pattern_space[];
 
-void handle_letter_selection(char input_char){
+void handle_letter_selection(char input_char)
+{
   // ENC_SW: add / delete / send sequence
   if (HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_0) == GPIO_PIN_RESET) 
     {
@@ -490,6 +521,11 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   }
 
 
+}
+
+void handle_ldr_receive()
+{
+  
 }
 
 /* USER CODE END 4 */

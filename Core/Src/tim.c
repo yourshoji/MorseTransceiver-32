@@ -247,10 +247,10 @@ void HAL_TIM_MspPostInit(TIM_HandleTypeDef* timHandle)
     /**TIM2 GPIO Configuration
     PA3     ------> TIM2_CH4
     */
-    GPIO_InitStruct.Pin = GPIO_PIN_3;
+    GPIO_InitStruct.Pin = MORSE_CAL_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+    HAL_GPIO_Init(MORSE_CAL_GPIO_Port, &GPIO_InitStruct);
 
   /* USER CODE BEGIN TIM2_MspPostInit 1 */
 

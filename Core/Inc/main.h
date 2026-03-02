@@ -57,8 +57,12 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-#define BUZZ_SW_Pin GPIO_PIN_2
-#define BUZZ_SW_GPIO_Port GPIOA
+#define LDR_Pin GPIO_PIN_1
+#define LDR_GPIO_Port GPIOA
+#define MODE_SW_Pin GPIO_PIN_2
+#define MODE_SW_GPIO_Port GPIOA
+#define MORSE_CAL_Pin GPIO_PIN_3
+#define MORSE_CAL_GPIO_Port GPIOA
 #define LED_Pin GPIO_PIN_5
 #define LED_GPIO_Port GPIOA
 #define ENC_A_Pin GPIO_PIN_6
