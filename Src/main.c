@@ -1,6 +1,3 @@
-// for git, dont forget to remove this
-// cd C:/Users/Shoji/Documents/STM32PIO/myMorseTransceiver
-
 /* USER CODE BEGIN Header */
 /**
   ******************************************************************************
@@ -21,6 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "adc.h"
 #include "tim.h"
 #include "gpio.h"
 
@@ -64,7 +62,6 @@ TIM_HandleTypeDef htim2;
 volatile SystemMode_t current_mode = MODE_SELECT;
 GPIO_PinState prev_mode_sw_state = false;
 
-
 // rotary encoder name-input variables
 volatile char name_buffer[10] = {0}; // reserve and clear space
 volatile int name_index = 0;
@@ -77,14 +74,11 @@ volatile size_t msg_index = 0; // Tracks the current character being processed
 volatile bool morse_running = false;
 volatile int step_counter = 0;
 
-// prototype for lookup helper (defined later in file)
-void handle_letter_selection(char input_char);
-void status_feedback_handler(uint32_t timer);
-void handle_morse_input(uint32_t timer, char letter);
-void reset_after_commit();
-void morse_commit();
-bool lookup_and_load_pattern(char character);
 
+
+// for debugging
+// volatile uint32_t ldr_val;
+// volatile uint32_t threshold_index;
 
 // telling the compiler that this variable actually exist in another source file (.c)
 extern const uint16_t pattern_space[];
@@ -94,6 +88,15 @@ extern const uint16_t pattern_space[];
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
+
+// prototype for lookup helper (defined later in file)
+void handle_ldr_receive(uint32_t threshold);
+void handle_letter_selection(char input_char);
+void status_feedback_handler(uint32_t timer);
+void handle_morse_input(uint32_t timer, char letter);
+void reset_after_commit();
+void morse_commit();
+bool lookup_and_load_pattern(char character);
 
 /* USER CODE END PFP */
 
@@ -222,6 +225,7 @@ int main(void)
   MX_TIM2_Init();
   MX_TIM3_Init();
   MX_TIM4_Init();
+  MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
   htim2.Instance = TIM2;
   htim2.Init.Prescaler = 7199; // 72 MHz / 7199+1 == 10kHz (0.1 ms)
@@ -236,6 +240,8 @@ int main(void)
   HAL_TIM_Encoder_Start(&htim3, TIM_CHANNEL_ALL);
   HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_1);
 
+  // adc calibration
+  HAL_ADCEx_Calibration_Start(&hadc1);
 
   /* USER CODE END 2 */
 
@@ -245,6 +251,8 @@ int main(void)
   {
     // ---- rotary encoder + switch handling ----
     uint32_t raw_cnt = __HAL_TIM_GET_COUNTER(&htim3);
+
+    // encoder usage: letter scroller
     uint32_t letter_index = (raw_cnt / 4) % 26; // wrap it up as a safety
     uint32_t pwm_val = (letter_index * 1000) / 25;
     char current_letter = 'A' + letter_index;
@@ -260,19 +268,29 @@ int main(void)
 
     switch (current_mode) {
       case MODE_SELECT:
+      {
+
         // ASCII debugging via LED (yellow)
         __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, pwm_val); // we should be able to set this in numeric when the UI is done
         handle_letter_selection(current_letter);
         break;
+      }
       case MODE_RECEIVE:
-        // max brightness: receive mode
-        __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 100);
-        // handle_ldr_receive;
+      {
+        // encoder usage: LDR threshold
+        uint32_t threshold_index = letter_index * 150;
+        // brightness: level of threshold
+        __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, pwm_val);
+        handle_ldr_receive(threshold_index);
         break;
+      }
+      
       case MODE_MANUAL:
+      {
         __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 500);
         // handle_manual_tap;
         break;
+      }
     }
 
     /* USER CODE END WHILE */
@@ -290,6 +308,7 @@ void SystemClock_Config(void)
 {
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+  RCC_PeriphCLKInitTypeDef PeriphClkInit = {0};
 
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
@@ -319,6 +338,12 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
+  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_ADC;
+  PeriphClkInit.AdcClockSelection = RCC_ADCPCLK2_DIV6;
+  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
+  {
+    Error_Handler();
+  }
 }
 
 /* USER CODE BEGIN 4 */
@@ -329,6 +354,26 @@ volatile size_t current_pattern_length = 0;
 
 // telling the compiler that this variable actually exist in another source file (.c)
 extern const uint16_t pattern_space[];
+
+void handle_ldr_receive(uint32_t threshold)
+{
+  HAL_ADC_Start(&hadc1);
+  
+  if (HAL_ADC_PollForConversion(&hadc1, 10) == HAL_OK) {
+    uint32_t ldr_val = HAL_ADC_GetValue(&hadc1);
+
+    if (ldr_val > threshold) 
+    {
+      HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_SET);
+    }
+    else 
+    {
+      HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_RESET);
+    }
+  }
+  
+  HAL_ADC_Stop(&hadc1);
+}
 
 void handle_letter_selection(char input_char)
 {
@@ -519,13 +564,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 
     // Detects if the entire MORSE CODE sequence is finished, sent.
   }
-
-
-}
-
-void handle_ldr_receive()
-{
-  
 }
 
 /* USER CODE END 4 */
