@@ -29,6 +29,8 @@
 #include <string.h>
 #include <ctype.h>
 
+// cd C:/Users/Shoji/Documents/STM32PIO/myMorseTransceiver
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -74,11 +76,20 @@ volatile size_t msg_index = 0; // Tracks the current character being processed
 volatile bool morse_running = false;
 volatile int step_counter = 0;
 
-
+// receiver mode variables
+char temp_pattern[8] = {0};      // Stores dots/dashes for the current letter
+int pattern_idx = 0;           // Current position in temp_pattern
+uint32_t pulse_start = 0;        // When the light turned ON
+uint32_t gap_start = 0;          // When the light turned OFF
+bool light_is_on = false;        // Flag to track LDR state
+// buffer
+volatile char receive_buffer[32] = {0};
+volatile int receive_idx = 0;
 
 // for debugging
-// volatile uint32_t ldr_val;
-// volatile uint32_t threshold_index;
+volatile char found;
+volatile uint32_t ldr_val;
+volatile uint32_t threshold_index;
 
 // telling the compiler that this variable actually exist in another source file (.c)
 extern const uint16_t pattern_space[];
@@ -90,7 +101,7 @@ void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
 
 // prototype for lookup helper (defined later in file)
-void handle_ldr_receive(uint32_t threshold);
+void handle_ldr_receive(uint32_t threshold, uint32_t current_pwm_level);
 void handle_letter_selection(char input_char);
 void status_feedback_handler(uint32_t timer);
 void handle_morse_input(uint32_t timer, char letter);
@@ -104,17 +115,41 @@ bool lookup_and_load_pattern(char character);
 /* USER CODE BEGIN 0 */
 
 // Define durations
-// const uint16_t time_dot = 1300;  // 130ms
-// const uint16_t time_dash = 3900; // 390ms
-// const uint16_t gap_sym = 1300;   // Gap between parts of a letter (130ms)
-// const uint16_t gap_char = 3900;  // Gap between letters (390ms)
-// const uint16_t gap_word = 9100;  // Gap between words (910ms)
-
 #define time_dot 1300 // 130ms
 #define time_dash 3900  // 390ms
 #define gap_sym 1300  // Gap between parts of a letter (130ms)
 #define gap_char 3900 // Gap between letters (390ms)
 #define gap_word 9100 // Gap between words (910ms)
+
+// Durations for Receiver Mode
+const char* morse_lookup[] = {
+    ".-",
+    "-...", 
+    "-.-.", 
+    "-..",  
+    ".",    
+    "..-.", 
+    "--.",  
+    "....", 
+    "..", 
+    ".---", 
+    "-.-",  
+    ".-..", 
+    "--",   
+    "-.",   
+    "---",  
+    ".--.", 
+    "--.-", 
+    ".-.", 
+    "...",  
+    "-",    
+    "..-",  
+    "...-", 
+    ".--",  
+    "-..-", 
+    "-.--", 
+    "--.."
+};
 
 typedef struct
 {
@@ -184,7 +219,6 @@ const MorseMapping_t morse_lookup_table[] = {
     {'X', pattern_x, sizeof(pattern_x)/sizeof(uint16_t)},
     {'Y', pattern_y, sizeof(pattern_y)/sizeof(uint16_t)},
     {'Z', pattern_z, sizeof(pattern_z)/sizeof(uint16_t)},
-
     {' ', pattern_space, sizeof(pattern_space)/sizeof(uint16_t)}
 };
 
@@ -269,7 +303,6 @@ int main(void)
     switch (current_mode) {
       case MODE_SELECT:
       {
-
         // ASCII debugging via LED (yellow)
         __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, pwm_val); // we should be able to set this in numeric when the UI is done
         handle_letter_selection(current_letter);
@@ -278,10 +311,10 @@ int main(void)
       case MODE_RECEIVE:
       {
         // encoder usage: LDR threshold
-        uint32_t threshold_index = letter_index * 150;
+        threshold_index = letter_index * 150;
         // brightness: level of threshold
-        __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, pwm_val);
-        handle_ldr_receive(threshold_index);
+        // __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, pwm_val);
+        handle_ldr_receive(threshold_index, pwm_val);
         break;
       }
       
@@ -355,24 +388,56 @@ volatile size_t current_pattern_length = 0;
 // telling the compiler that this variable actually exist in another source file (.c)
 extern const uint16_t pattern_space[];
 
-void handle_ldr_receive(uint32_t threshold)
-{
-  HAL_ADC_Start(&hadc1);
-  
-  if (HAL_ADC_PollForConversion(&hadc1, 10) == HAL_OK) {
-    uint32_t ldr_val = HAL_ADC_GetValue(&hadc1);
+void handle_ldr_receive(uint32_t threshold, uint32_t current_pwm_level) {
+    HAL_ADC_Start(&hadc1);
+    if (HAL_ADC_PollForConversion(&hadc1, 10) == HAL_OK) {
+        ldr_val = HAL_ADC_GetValue(&hadc1);
+        uint32_t now = HAL_GetTick();
 
-    if (ldr_val > threshold) 
-    {
-      HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_SET);
+        if (ldr_val > threshold) { // --- LIGHT IS ON ---
+            if (!light_is_on) { 
+                pulse_start = now; // Mark the start of a pulse
+                light_is_on = true;
+            }
+            __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 1000); // Feedback
+            HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_SET);
+            gap_start = now; // Reset the "Gap" timer because light is present
+        } 
+        else { // --- LIGHT IS OFF ---
+            if (light_is_on) { 
+                uint32_t duration = now - pulse_start;
+                // Pulse Classification (The "Fuzzy" Logic)
+                if (duration > 30 && duration < 250) temp_pattern[pattern_idx++] = '.';
+                else if (duration >= 250) temp_pattern[pattern_idx++] = '-';
+                
+                temp_pattern[pattern_idx] = '\0'; // Keep it a valid string
+                light_is_on = false;
+                gap_start = now; // Start timing the silence
+            }
+            __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, current_pwm_level);
+            HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_RESET);
+
+
+            // --- GAP DETECTION (End of Letter) ---
+            if (pattern_idx > 0 && (now - gap_start > 800)) {
+                for (int i = 0; i < 26; i++) {
+                    if (strcmp(temp_pattern, morse_lookup[i]) == 0) {
+                        // Success! Character 'A' + i found
+                        found = 'A' + i;
+                        // Add 'found' to your name_buffer here
+                        if (receive_idx < (int)(sizeof(receive_idx - 1))) { // basically, receive_idx < 31
+                          receive_buffer[receive_idx++] = found; // post-increment
+                          receive_buffer[receive_idx] = '\0';
+                        }
+                        break;
+                    }
+                }
+                pattern_idx = 0; // Clear for next letter
+                temp_pattern[0] = '\0';
+            }
+        }
     }
-    else 
-    {
-      HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_RESET);
-    }
-  }
-  
-  HAL_ADC_Stop(&hadc1);
+    HAL_ADC_Stop(&hadc1);
 }
 
 void handle_letter_selection(char input_char)
