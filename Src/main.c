@@ -85,6 +85,8 @@ bool light_is_on = false;        // Flag to track LDR state
 // buffer
 volatile char receive_buffer[32] = {0};
 volatile int receive_idx = 0;
+// unit duration
+volatile uint8_t unit_duration = 130;
 
 // for debugging
 volatile char found;
@@ -123,32 +125,32 @@ bool lookup_and_load_pattern(char character);
 
 // Durations for Receiver Mode
 const char* morse_lookup[] = {
-    ".-",
-    "-...", 
-    "-.-.", 
-    "-..",  
-    ".",    
-    "..-.", 
-    "--.",  
-    "....", 
-    "..", 
-    ".---", 
-    "-.-",  
-    ".-..", 
-    "--",   
-    "-.",   
-    "---",  
-    ".--.", 
-    "--.-", 
-    ".-.", 
-    "...",  
-    "-",    
-    "..-",  
-    "...-", 
-    ".--",  
-    "-..-", 
-    "-.--", 
-    "--.."
+    ".-",    // A
+    "-...",  // B
+    "-.-.",  // C
+    "-..",   // D
+    ".",     // E
+    "..-.",  // F
+    "--.",   // G
+    "....",  // H
+    "..",    // I
+    ".---",  // J
+    "-.-",   // K
+    ".-..",  // L
+    "--",    // M
+    "-.",    // N
+    "---",   // O
+    ".--.",  // P
+    "--.-",  // Q
+    ".-.",   // R
+    "...",   // S
+    "-",     // T
+    "..-",   // U
+    "...-",  // V
+    ".--",   // W
+    "-..-",  // X
+    "-.--",  // Y
+    "--.."   // Z
 };
 
 typedef struct
@@ -407,8 +409,12 @@ void handle_ldr_receive(uint32_t threshold, uint32_t current_pwm_level) {
             if (light_is_on) { 
                 uint32_t duration = now - pulse_start;
                 // Pulse Classification (The "Fuzzy" Logic)
-                if (duration > 30 && duration < 250) temp_pattern[pattern_idx++] = '.';
-                else if (duration >= 250) temp_pattern[pattern_idx++] = '-';
+                // if (duration > 20 && duration < 200) temp_pattern[pattern_idx++] = '.';
+                // else if (duration >= 200 && duration < 350) temp_pattern[pattern_idx++] = '-';
+                if (duration > 30 && duration < (unit_duration * 2)) 
+                temp_pattern[pattern_idx++] = '.';
+                else if (duration >= (unit_duration * 2)) 
+                temp_pattern[pattern_idx++] = '-';
                 
                 temp_pattern[pattern_idx] = '\0'; // Keep it a valid string
                 light_is_on = false;
@@ -419,13 +425,14 @@ void handle_ldr_receive(uint32_t threshold, uint32_t current_pwm_level) {
 
 
             // --- GAP DETECTION (End of Letter) ---
-            if (pattern_idx > 0 && (now - gap_start > 800)) {
+            // if (pattern_idx > 0 && (now - gap_start > 350)) {
+            if (pattern_idx > 0 && (now - gap_start > (unit_duration * 3))) {
                 for (int i = 0; i < 26; i++) {
                     if (strcmp(temp_pattern, morse_lookup[i]) == 0) {
                         // Success! Character 'A' + i found
                         found = 'A' + i;
                         // Add 'found' to your name_buffer here
-                        if (receive_idx < (int)(sizeof(receive_idx - 1))) { // basically, receive_idx < 31
+                        if (receive_idx < (int)(sizeof(receive_buffer) - 1)) { // basically, receive_idx < 31
                           receive_buffer[receive_idx++] = found; // post-increment
                           receive_buffer[receive_idx] = '\0';
                         }
