@@ -86,7 +86,14 @@ bool light_is_on = false;        // Flag to track LDR state
 volatile char receive_buffer[32] = {0};
 volatile int receive_idx = 0;
 // unit duration
-volatile uint8_t unit_duration = 130;
+volatile uint8_t unit_duration = 130; // 130 as default
+// tuner
+const uint16_t unit_presets[] = {130, 150, 200};
+const int total_presets = 3;
+volatile int preset_idx = 0;
+// tuner and reset function
+static uint32_t press_start_time = 0;
+static bool button_was_pressed = false;
 
 // for debugging
 volatile char found;
@@ -104,6 +111,9 @@ void SystemClock_Config(void);
 
 // prototype for lookup helper (defined later in file)
 void handle_ldr_receive(uint32_t threshold, uint32_t current_pwm_level);
+void reset_and_tune_handler();
+void reset_receive_buffer();
+void unit_duration_tuner();
 void handle_letter_selection(char input_char);
 void status_feedback_handler(uint32_t timer);
 void handle_morse_input(uint32_t timer, char letter);
@@ -391,6 +401,9 @@ volatile size_t current_pattern_length = 0;
 extern const uint16_t pattern_space[];
 
 void handle_ldr_receive(uint32_t threshold, uint32_t current_pwm_level) {
+
+    reset_and_tune_handler();
+
     HAL_ADC_Start(&hadc1);
     if (HAL_ADC_PollForConversion(&hadc1, 10) == HAL_OK) {
         ldr_val = HAL_ADC_GetValue(&hadc1);
@@ -445,6 +458,66 @@ void handle_ldr_receive(uint32_t threshold, uint32_t current_pwm_level) {
         }
     }
     HAL_ADC_Stop(&hadc1);
+}
+
+// void unit_duration_tuner() 
+// {
+//   volatile GPIO_PinState tuner_sw_state = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_0);
+
+//   if (tuner_sw_state == GPIO_PIN_RESET && prev_tuner_sw_state == GPIO_PIN_SET) // enc_sw
+//   {
+//     preset_idx = (preset_idx + 1) % total_presets;
+//     unit_duration = unit_presets[preset_idx];
+//     // Status Feedback
+//     // HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_RESET);
+
+//     HAL_Delay(50);
+//   }
+//   prev_tuner_sw_state = tuner_sw_state;
+// }
+
+void reset_and_tune_handler()
+{
+  bool is_pressed = (HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_0) == GPIO_PIN_RESET);
+  
+  // button just pushed down
+  if (is_pressed && !button_was_pressed) 
+  {
+    press_start_time = HAL_GetTick();
+    button_was_pressed = true;
+  }
+  // button just released (happening while holding)
+  else if (!is_pressed && button_was_pressed)
+  {
+    uint32_t duration = HAL_GetTick() - press_start_time;
+
+    // reset buffer
+    if (duration > 2000) 
+    {
+      reset_receive_buffer();
+    }
+    else if (duration > 50)
+    {
+      unit_duration_tuner();
+    }
+
+    button_was_pressed = false;
+    press_start_time = 0;
+  }
+}
+
+void reset_receive_buffer()
+{
+  receive_idx = 0;
+  receive_buffer[0] = '\0';
+}
+
+void unit_duration_tuner() 
+{
+    preset_idx = (preset_idx + 1) % total_presets;
+    unit_duration = unit_presets[preset_idx];
+    // Status Feedback
+    // HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_RESET);
 }
 
 void handle_letter_selection(char input_char)
