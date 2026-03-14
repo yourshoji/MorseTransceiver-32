@@ -409,8 +409,11 @@ void handle_ldr_receive(uint32_t threshold, uint32_t current_pwm_level) {
         ldr_val = HAL_ADC_GetValue(&hadc1);
         uint32_t now = HAL_GetTick();
 
-        if (ldr_val > threshold) { // --- LIGHT IS ON ---
-            if (!light_is_on) { 
+        // LIGHT IS ON
+        if (ldr_val > threshold) 
+        { 
+            if (!light_is_on) 
+            { 
                 pulse_start = now; // Mark the start of a pulse
                 light_is_on = true;
             }
@@ -418,12 +421,13 @@ void handle_ldr_receive(uint32_t threshold, uint32_t current_pwm_level) {
             HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_SET);
             gap_start = now; // Reset the "Gap" timer because light is present
         } 
-        else { // --- LIGHT IS OFF ---
-            if (light_is_on) { 
+        // LIGHT IS OFF
+        else 
+        { 
+            if (light_is_on) 
+            { 
                 uint32_t duration = now - pulse_start;
-                // Pulse Classification (The "Fuzzy" Logic)
-                // if (duration > 20 && duration < 200) temp_pattern[pattern_idx++] = '.';
-                // else if (duration >= 200 && duration < 350) temp_pattern[pattern_idx++] = '-';
+
                 if (duration > 30 && duration < (unit_duration * 2)) 
                 temp_pattern[pattern_idx++] = '.';
                 else if (duration >= (unit_duration * 2)) 
@@ -437,15 +441,17 @@ void handle_ldr_receive(uint32_t threshold, uint32_t current_pwm_level) {
             HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_RESET);
 
 
-            // --- GAP DETECTION (End of Letter) ---
-            // if (pattern_idx > 0 && (now - gap_start > 350)) {
-            if (pattern_idx > 0 && (now - gap_start > (unit_duration * 3))) {
-                for (int i = 0; i < 26; i++) {
+            // GAP DETECTION (end of a letter)
+            if (pattern_idx > 0 && (now - gap_start > (unit_duration * 3))) 
+            {
+                for (int i = 0; i < 26; i++) 
+                {
                     if (strcmp(temp_pattern, morse_lookup[i]) == 0) {
-                        // Success! Character 'A' + i found
+
                         found = 'A' + i;
-                        // Add 'found' to your name_buffer here
-                        if (receive_idx < (int)(sizeof(receive_buffer) - 1)) { // basically, receive_idx < 31
+  
+                        if (receive_idx < (int)(sizeof(receive_buffer) - 1)) 
+                        { // basically, receive_idx < 31
                           receive_buffer[receive_idx++] = found; // post-increment
                           receive_buffer[receive_idx] = '\0';
                         }
@@ -460,21 +466,6 @@ void handle_ldr_receive(uint32_t threshold, uint32_t current_pwm_level) {
     HAL_ADC_Stop(&hadc1);
 }
 
-// void unit_duration_tuner() 
-// {
-//   volatile GPIO_PinState tuner_sw_state = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_0);
-
-//   if (tuner_sw_state == GPIO_PIN_RESET && prev_tuner_sw_state == GPIO_PIN_SET) // enc_sw
-//   {
-//     preset_idx = (preset_idx + 1) % total_presets;
-//     unit_duration = unit_presets[preset_idx];
-//     // Status Feedback
-//     // HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_RESET);
-
-//     HAL_Delay(50);
-//   }
-//   prev_tuner_sw_state = tuner_sw_state;
-// }
 
 void reset_and_tune_handler()
 {
@@ -510,40 +501,40 @@ void reset_receive_buffer()
 {
   receive_idx = 0;
   receive_buffer[0] = '\0';
+  // put status feedback here
 }
 
 void unit_duration_tuner() 
 {
     preset_idx = (preset_idx + 1) % total_presets;
     unit_duration = unit_presets[preset_idx];
-    // Status Feedback
-    // HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_RESET);
+    // put status feedback here
 }
 
 void handle_letter_selection(char input_char)
 {
   // ENC_SW: add / delete / send sequence
-  if (HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_0) == GPIO_PIN_RESET) 
+  static uint32_t press_start = 0;
+  bool is_pressed = (HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_0) == GPIO_PIN_RESET);
+  
+  if (is_pressed) 
     {
-      uint32_t press_start = HAL_GetTick();
-
-      while (HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_0) == GPIO_PIN_RESET)
-      {
+      if (press_start == 0) press_start = HAL_GetTick();
         uint32_t elapsed = HAL_GetTick() - press_start;
         status_feedback_handler(elapsed);
-      }
-      uint32_t duration = HAL_GetTick() - press_start;
-      handle_morse_input(duration, input_char);
-      
-      HAL_Delay(50);
-    }
-
-    // RESET*
-    reset_after_commit();
+  }
+  // button released
+  else if (press_start != 0) 
+  {
+    uint32_t duration = HAL_GetTick() - press_start;
+    handle_morse_input(duration, input_char);
+    press_start = 0; // reset
     // ACTION*
     morse_commit();
-
-    HAL_Delay(10);
+    // RESET*
+    reset_after_commit();
+  }
+  HAL_Delay(10);
 }
 
 void status_feedback_handler(uint32_t timer)
@@ -554,6 +545,8 @@ void status_feedback_handler(uint32_t timer)
       HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_SET);
       HAL_Delay(50);
       HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);
+    // __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 100); // Feedback
+
   }
   if (timer >= 500 && timer < 1500) 
   {
@@ -562,6 +555,8 @@ void status_feedback_handler(uint32_t timer)
     HAL_Delay(100);
     HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);
     HAL_Delay(100);
+    // __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 500); // Feedback
+  
   } 
   else if (timer >= 1500 && timer < 3000) 
   {
@@ -569,6 +564,7 @@ void status_feedback_handler(uint32_t timer)
     HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_SET);
     HAL_Delay(1500);
     HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);
+    // __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 1000); // Feedback
   }
 }
 
