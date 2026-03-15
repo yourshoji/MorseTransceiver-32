@@ -60,13 +60,23 @@ extern TIM_HandleTypeDef htim3;
 extern TIM_HandleTypeDef htim4;
 TIM_HandleTypeDef htim2;
 
+// Define durations
+#define time_dot 1300 // 130ms
+#define time_dash 3900  // 390ms
+#define gap_sym 1300  // Gap between parts of a letter (130ms)
+#define gap_char 3900 // Gap between letters (390ms)
+#define gap_word 9100 // Gap between words (910ms)
+
+// Define buffer capacity
+#define MAX_BUFFER 128
+
 // mode selection
 volatile SystemMode_t current_mode = MODE_SELECT;
 GPIO_PinState prev_mode_sw_state = false;
 
 // rotary encoder name-input variables
-volatile char name_buffer[10] = {0}; // reserve and clear space
-volatile int name_index = 0;
+volatile char select_buffer[MAX_BUFFER] = {0}; // reserve and clear space
+volatile int select_idx = 0;
 volatile bool confirm_send_flag = false;
 volatile bool ready_to_send_flag = false;
 volatile bool ready_to_reset_flag = false;
@@ -82,8 +92,8 @@ int pattern_idx = 0;           // Current position in temp_pattern
 uint32_t pulse_start = 0;        // When the light turned ON
 uint32_t gap_start = 0;          // When the light turned OFF
 bool light_is_on = false;        // Flag to track LDR state
-// buffer
-volatile char receive_buffer[32] = {0};
+// receive mode buffer
+volatile char receive_buffer[MAX_BUFFER] = {0};
 volatile int receive_idx = 0;
 // unit duration
 volatile uint8_t unit_duration = 130; // 130 as default
@@ -96,6 +106,7 @@ static uint32_t press_start_time = 0;
 static bool button_was_pressed = false;
 
 // for debugging
+volatile char current_letter;
 volatile char found;
 volatile uint32_t ldr_val;
 volatile uint32_t threshold_index;
@@ -125,13 +136,6 @@ bool lookup_and_load_pattern(char character);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
-// Define durations
-#define time_dot 1300 // 130ms
-#define time_dash 3900  // 390ms
-#define gap_sym 1300  // Gap between parts of a letter (130ms)
-#define gap_char 3900 // Gap between letters (390ms)
-#define gap_word 9100 // Gap between words (910ms)
 
 // Durations for Receiver Mode
 const char* morse_lookup[] = {
@@ -299,9 +303,17 @@ int main(void)
     uint32_t raw_cnt = __HAL_TIM_GET_COUNTER(&htim3);
 
     // encoder usage: letter scroller
-    uint32_t letter_index = (raw_cnt / 4) % 26; // wrap it up as a safety
+    uint32_t letter_index = (raw_cnt / 4) % 27; // wrap it up as a safety
     uint32_t pwm_val = (letter_index * 1000) / 25;
-    char current_letter = 'A' + letter_index;
+    // conditional for blank space
+    if (letter_index < 26) 
+    {
+      current_letter = 'A' + letter_index; 
+    }
+    else 
+    {
+      current_letter = ' ';
+    }
     volatile GPIO_PinState mode_sw_state = HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_2);
 
     // mode changer
@@ -440,20 +452,19 @@ void handle_ldr_receive(uint32_t threshold, uint32_t current_pwm_level) {
             __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, current_pwm_level);
             HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_RESET);
 
-
             // GAP DETECTION (end of a letter)
             if (pattern_idx > 0 && (now - gap_start > (unit_duration * 3))) 
             {
-                for (int i = 0; i < 26; i++) 
+                for (int i = 0; i < 26; i++) // loop through all alphabets (eng)
                 {
                     if (strcmp(temp_pattern, morse_lookup[i]) == 0) {
 
                         found = 'A' + i;
   
-                        if (receive_idx < (int)(sizeof(receive_buffer) - 1)) 
-                        { // basically, receive_idx < 31
+                        if (receive_idx < (int)(sizeof(receive_buffer) - 1))
+                        { // basically, receive_idx not exceeding 31
                           receive_buffer[receive_idx++] = found; // post-increment
-                          receive_buffer[receive_idx] = '\0';
+                          receive_buffer[receive_idx] = '\0'; // after being incremented, make it stay string by making it null
                         }
                         break;
                     }
@@ -461,11 +472,21 @@ void handle_ldr_receive(uint32_t threshold, uint32_t current_pwm_level) {
                 pattern_idx = 0; // Clear for next letter
                 temp_pattern[0] = '\0';
             }
+            // WORD GAP DETECTION
+            if (now - gap_start > (unit_duration * 7)) 
+            {
+              if (receive_idx > 0 && 
+                  receive_buffer[receive_idx - 1] != ' ' && // if the previous slot is not already a space  
+                  receive_idx < (MAX_BUFFER - 1))  // if not buffer overflow
+              {
+                  receive_buffer[receive_idx++] = ' ';
+                  receive_buffer[receive_idx] = '\0';
+              }
+            }
         }
     }
     HAL_ADC_Stop(&hadc1);
 }
-
 
 void reset_and_tune_handler()
 {
@@ -578,19 +599,19 @@ void handle_morse_input(uint32_t timer, char letter)
         confirm_send_flag = true;
         ready_to_reset_flag = true;
       } 
-      else if (name_index < (int)(sizeof(name_buffer) - 1)) 
+      else if (select_idx < (int)(sizeof(select_buffer) - 1)) 
       {
-        name_buffer[name_index++] = letter;
-        name_buffer[name_index] = '\0';
+        select_buffer[select_idx++] = letter;
+        select_buffer[select_idx] = '\0';
       }
     } 
     // DELETE
     else if (timer < 1500) 
     {
-      if (name_index > 0) 
+      if (select_idx > 0) 
       {
-        name_index--;
-        name_buffer[name_index] = '\0';
+        select_idx--;
+        select_buffer[select_idx] = '\0';
       }
     } 
     // CODE SEND
@@ -610,17 +631,17 @@ void reset_after_commit()
 
     ready_to_send_flag = false;
     ready_to_reset_flag = false;
-    name_index = 0;
-    name_buffer[0] = '\0';
+    select_idx = 0;
+    select_buffer[0] = '\0';
   }
 }
 
 void morse_commit()
 {
-  if (confirm_send_flag && !morse_running && name_buffer[0] != '\0') 
+  if (confirm_send_flag && !morse_running && select_buffer[0] != '\0') 
   {
     msg_index = 0;
-    if (lookup_and_load_pattern(name_buffer[msg_index])) 
+    if (lookup_and_load_pattern(select_buffer[msg_index])) 
     {
       morse_running = true;
       step_counter = 0; // make sure we start from beginning
@@ -682,7 +703,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
       msg_index++; // Advance to the next character
 
       // If the character is "null" (none), terminate it.
-      if (name_buffer[msg_index] == '\0')
+      if (select_buffer[msg_index] == '\0')
       {
         morse_running = false;
         HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_RESET);
@@ -691,7 +712,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
       }
 
       // Loads next character
-      if (lookup_and_load_pattern(name_buffer[msg_index]))
+      if (lookup_and_load_pattern(select_buffer[msg_index]))
       {
         step_counter = 0;
       }
