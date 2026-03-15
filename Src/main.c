@@ -94,9 +94,9 @@ uint32_t gap_start = 0;          // When the light turned OFF
 bool light_is_on = false;        // Flag to track LDR state
 // receive mode buffer
 volatile char receive_buffer[MAX_BUFFER] = {0};
-volatile int receive_idx = 0;
 // unit duration
 volatile uint8_t unit_duration = 130; // 130 as default
+volatile int receive_idx = 0;
 // tuner
 const uint16_t unit_presets[] = {130, 150, 200};
 const int total_presets = 3;
@@ -106,6 +106,7 @@ static uint32_t press_start_time = 0;
 static bool button_was_pressed = false;
 
 // for debugging
+volatile uint32_t letter_index;
 volatile char current_letter;
 volatile char found;
 volatile uint32_t ldr_val;
@@ -303,7 +304,7 @@ int main(void)
     uint32_t raw_cnt = __HAL_TIM_GET_COUNTER(&htim3);
 
     // encoder usage: letter scroller
-    uint32_t letter_index = (raw_cnt / 4) % 27; // wrap it up as a safety
+    letter_index = (raw_cnt / 4) % 27; // wrap it up as a safety
     uint32_t pwm_val = (letter_index * 1000) / 25;
     // conditional for blank space
     if (letter_index < 26) 
@@ -685,15 +686,23 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     // Set the next ARR (Counter) to reach only the required MORSE CODE unit (accurately)
     __HAL_TIM_SET_AUTORELOAD(&htim2, current_pattern_ptr[step_counter] - 1);
 
-    // MORSE CODE is an alternating sequence of sound and silence (sound, silence, sound)
-    if (step_counter % 2 == 0) // Checks if the current position is either EVEN or ODD
+    if (select_buffer[msg_index] == ' ') 
     {
-      HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_SET); // If EVEN
+      HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_RESET);
     }
-    else
+    else 
     {
-      HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_RESET); // If ODD
+      // MORSE CODE is an alternating sequence of sound and silence (sound, silence, sound)
+      if (step_counter % 2 == 0) // Checks if the current position is either EVEN or ODD
+      {
+        HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_SET); // If EVEN
+      }
+      else
+      {
+        HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_RESET); // If ODD
+      }
     }
+    
     // Moving on to the next piece of MORSE CODE
     step_counter++;
 
