@@ -60,12 +60,21 @@ extern TIM_HandleTypeDef htim3;
 extern TIM_HandleTypeDef htim4;
 TIM_HandleTypeDef htim2;
 
+// Define pins
+#define DOT_PORT    GPIOB
+#define DOT_PIN     GPIO_PIN_5
+#define DASH_PORT   GPIOB
+#define DASH_PIN    GPIO_PIN_10
+#define BUZZER_PORT GPIOB
+#define BUZZER_PIN  GPIO_PIN_11
+
+
 // Define durations
-#define time_dot 1300 // 130ms
+#define time_dot  1300 // 130ms
 #define time_dash 3900  // 390ms
-#define gap_sym 1300  // Gap between parts of a letter (130ms)
-#define gap_char 3900 // Gap between letters (390ms)
-#define gap_word 9100 // Gap between words (910ms)
+#define gap_sym   1300  // Gap between parts of a letter (130ms)
+#define gap_char  3900 // Gap between letters (390ms)
+#define gap_word  9100 // Gap between words (910ms)
 
 // Define buffer capacity
 #define MAX_BUFFER 128
@@ -122,6 +131,8 @@ void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
 
 // prototype for lookup helper (defined later in file)
+void handle_manual_mode();
+void transmit(int pulseDuration);
 void handle_ldr_receive(uint32_t threshold, uint32_t current_pwm_level);
 void reset_and_tune_handler();
 void reset_receive_buffer();
@@ -337,8 +348,6 @@ int main(void)
       {
         // encoder usage: LDR threshold
         threshold_index = letter_index * 150;
-        // brightness: level of threshold
-        // __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, pwm_val);
         handle_ldr_receive(threshold_index, pwm_val);
         break;
       }
@@ -346,7 +355,7 @@ int main(void)
       case MODE_MANUAL:
       {
         __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 500);
-        // handle_manual_tap;
+        handle_manual_mode();
         break;
       }
     }
@@ -412,6 +421,61 @@ volatile size_t current_pattern_length = 0;
 
 // telling the compiler that this variable actually exist in another source file (.c)
 extern const uint16_t pattern_space[];
+
+void handle_manual_mode()
+{
+  if (HAL_GPIO_ReadPin(DOT_PORT, DOT_PIN) == GPIO_PIN_SET && HAL_GPIO_ReadPin(DASH_PORT, DASH_PIN) == GPIO_PIN_RESET)
+  {
+    transmit(130);
+  }
+  if (HAL_GPIO_ReadPin(DASH_PORT, DASH_PIN) == GPIO_PIN_SET && HAL_GPIO_ReadPin(DOT_PORT, DOT_PIN) == GPIO_PIN_RESET)
+  {
+    transmit(390);
+  }
+}
+
+void transmit(int pulseDuration) 
+{
+  uint32_t startTime = HAL_GetTick();
+  bool isFinished = false;
+  
+  enum SubState 
+  {
+    SENDING_CODE,
+    SENDING_BREAK
+  } current_state = SENDING_CODE;
+  
+  // Buzzer On
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_SET);
+
+  while (!isFinished)
+  {
+    volatile uint32_t elapsed = HAL_GetTick() - startTime;
+
+    switch(current_state)
+    {
+      case SENDING_CODE:
+      {
+        // if beyond the set amount
+        if (elapsed >= pulseDuration)
+        {
+          HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_RESET);
+          current_state = SENDING_BREAK;
+        }
+        break;
+      }
+      case SENDING_BREAK:
+      {
+        // total time = set amount + break time (130)
+        if (elapsed >= pulseDuration + 130)
+        {
+          isFinished = true; // exit the while loop
+        }
+        break;
+      }
+    }
+  }
+}
 
 void handle_ldr_receive(uint32_t threshold, uint32_t current_pwm_level) {
 

@@ -71,8 +71,12 @@ void Error_Handler(void);
 #define ENC_B_GPIO_Port GPIOA
 #define ENC_SW_Pin GPIO_PIN_0
 #define ENC_SW_GPIO_Port GPIOB
+#define DASH_SW_Pin GPIO_PIN_10
+#define DASH_SW_GPIO_Port GPIOB
 #define BUZZER_Pin GPIO_PIN_11
 #define BUZZER_GPIO_Port GPIOB
+#define DOT_SW_Pin GPIO_PIN_5
+#define DOT_SW_GPIO_Port GPIOB
 #define LEDB6_Pin GPIO_PIN_6
 #define LEDB6_GPIO_Port GPIOB
 
