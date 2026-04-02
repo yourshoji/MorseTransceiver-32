@@ -35,11 +35,20 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-typedef enum {
+typedef enum 
+{
   MODE_SELECT = 0,
   MODE_RECEIVE,
   MODE_MANUAL
 } SystemMode_t;
+
+typedef enum 
+{
+  IDLE,
+  DEBOUNCE,
+  SENDING,
+  GAP
+} SubState_t;
 
 /* USER CODE END PTD */
 
@@ -132,7 +141,7 @@ void SystemClock_Config(void);
 
 // prototype for lookup helper (defined later in file)
 void handle_manual_mode();
-void transmit(int pulseDuration);
+bool handle_transmit(int pulse_duration);
 void handle_ldr_receive(uint32_t threshold, uint32_t current_pwm_level);
 void reset_and_tune_handler();
 void reset_receive_buffer();
@@ -351,10 +360,9 @@ int main(void)
         handle_ldr_receive(threshold_index, pwm_val);
         break;
       }
-      
       case MODE_MANUAL:
       {
-        __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 500);
+        __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 0);
         handle_manual_mode();
         break;
       }
@@ -424,56 +432,71 @@ extern const uint16_t pattern_space[];
 
 void handle_manual_mode()
 {
-  if (HAL_GPIO_ReadPin(DOT_PORT, DOT_PIN) == GPIO_PIN_SET && HAL_GPIO_ReadPin(DASH_PORT, DASH_PIN) == GPIO_PIN_RESET)
+  // check the param value to see its changes
+  bool isBusy = handle_transmit(0);
+
+  if (!isBusy)
   {
-    transmit(130);
-  }
-  if (HAL_GPIO_ReadPin(DASH_PORT, DASH_PIN) == GPIO_PIN_SET && HAL_GPIO_ReadPin(DOT_PORT, DOT_PIN) == GPIO_PIN_RESET)
-  {
-    transmit(390);
+    if (HAL_GPIO_ReadPin(DOT_PORT, DOT_PIN) == GPIO_PIN_SET && HAL_GPIO_ReadPin(DASH_PORT, DASH_PIN) == GPIO_PIN_RESET)
+    {
+      handle_transmit(130);
+    }
+    if (HAL_GPIO_ReadPin(DASH_PORT, DASH_PIN) == GPIO_PIN_SET && HAL_GPIO_ReadPin(DOT_PORT, DOT_PIN) == GPIO_PIN_RESET)
+    {
+      handle_transmit(390);
+    }
   }
 }
 
-void transmit(int pulseDuration) 
+bool handle_transmit(int pulse_duration)
 {
-  uint32_t startTime = HAL_GetTick();
-  bool isFinished = false;
-  
-  enum SubState 
-  {
-    SENDING_CODE,
-    SENDING_BREAK
-  } current_state = SENDING_CODE;
-  
-  // Buzzer On
-  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_SET);
+  static SubState_t current_state = IDLE;
+  static uint32_t start_time = 0;
+  static int current_duration = 0;
 
-  while (!isFinished)
-  {
-    volatile uint32_t elapsed = HAL_GetTick() - startTime;
+  uint32_t now = HAL_GetTick();
 
-    switch(current_state)
-    {
-      case SENDING_CODE:
+  switch(current_state)
+  {
+    case IDLE:
+      if (pulse_duration > 0)
       {
-        // if beyond the set amount
-        if (elapsed >= pulseDuration)
-        {
-          HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_RESET);
-          current_state = SENDING_BREAK;
-        }
-        break;
+        HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_RESET);
+        current_duration = pulse_duration;
+        start_time = now;
+        current_state = DEBOUNCE;
       }
-      case SENDING_BREAK:
+      return false; // not busy
+
+    case DEBOUNCE:
+      if (now - start_time >= 10) // 10ms for confirmation
       {
-        // total time = set amount + break time (130)
-        if (elapsed >= pulseDuration + 130)
-        {
-          isFinished = true; // exit the while loop
-        }
-        break;
+        HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_SET);
+        start_time = now;
+        current_state = SENDING;
       }
-    }
+      return true; // busy. lock the process, no new command allowed. (works bc its bool not void)
+      
+    case SENDING:
+      if (now - start_time >= current_duration)
+      {
+        HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_RESET);
+        start_time = now;
+        current_state = GAP;
+      }
+      return true;
+
+    case GAP:
+      if (now - start_time >= 130)
+      {
+        current_state = IDLE;
+      }
+      return true;
+
+    // in case of State Corruption
+    default:
+      current_state = IDLE;
+      return false;
   }
 }
 
