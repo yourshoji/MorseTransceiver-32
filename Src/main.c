@@ -346,13 +346,6 @@ int main(void)
     }
     volatile GPIO_PinState mode_sw_state = HAL_GPIO_ReadPin(MODE_SW_PORT, MODE_SW_PIN);
 
-    // // mode changer
-    // if (mode_sw_state == GPIO_PIN_RESET && prev_mode_sw_state == GPIO_PIN_SET)
-    // {
-    //   current_mode = (current_mode + 1) % 3;
-    //   HAL_Delay(50);
-    // }
-
     // mode changer
     if (mode_sw_state == GPIO_PIN_RESET && prev_mode_sw_state == GPIO_PIN_SET)
     {
