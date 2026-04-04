@@ -70,13 +70,22 @@ extern TIM_HandleTypeDef htim4;
 TIM_HandleTypeDef htim2;
 
 // Define pins
-#define DOT_PORT    GPIOB
-#define DOT_PIN     GPIO_PIN_5
-#define DASH_PORT   GPIOB
-#define DASH_PIN    GPIO_PIN_10
-#define BUZZER_PORT GPIOB
-#define BUZZER_PIN  GPIO_PIN_11
-
+#define DOT_PORT        GPIOB
+#define DOT_PIN         GPIO_PIN_5
+#define DASH_PORT       GPIOB
+#define DASH_PIN        GPIO_PIN_10
+#define BUZZER_PORT     GPIOB
+#define BUZZER_PIN      GPIO_PIN_11
+#define MODE_SW_PORT    GPIOA
+#define MODE_SW_PIN     GPIO_PIN_2
+#define ENC_SW_PORT     GPIOB
+#define ENC_SW_PIN      GPIO_PIN_0
+#define LED1_PORT       GPIOA
+#define LED1_PIN        GPIO_PIN_5
+#define LED2_PORT       &htim4
+#define LED2_PIN        TIM_CHANNEL_1
+#define LED3_PORT       GPIOB
+#define LED3_PIN        GPIO_PIN_12
 
 // Define durations
 #define time_dot  1300 // 130ms
@@ -309,7 +318,7 @@ int main(void)
 
   /* rotary encoder peripherals (encoder on TIM3, PWM on TIM4) */
   HAL_TIM_Encoder_Start(&htim3, TIM_CHANNEL_ALL);
-  HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_1);
+  HAL_TIM_PWM_Start(LED2_PORT, LED2_PIN);
 
   // adc calibration
   HAL_ADCEx_Calibration_Start(&hadc1);
@@ -335,13 +344,25 @@ int main(void)
     {
       current_letter = ' ';
     }
-    volatile GPIO_PinState mode_sw_state = HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_2);
+    volatile GPIO_PinState mode_sw_state = HAL_GPIO_ReadPin(MODE_SW_PORT, MODE_SW_PIN);
+
+    // // mode changer
+    // if (mode_sw_state == GPIO_PIN_RESET && prev_mode_sw_state == GPIO_PIN_SET)
+    // {
+    //   current_mode = (current_mode + 1) % 3;
+    //   HAL_Delay(50);
+    // }
 
     // mode changer
     if (mode_sw_state == GPIO_PIN_RESET && prev_mode_sw_state == GPIO_PIN_SET)
     {
-      current_mode = (current_mode + 1) % 3;
-      HAL_Delay(50);
+        // clean up before switching
+        HAL_GPIO_WritePin(BUZZER_PORT, BUZZER_PIN, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(LED3_PORT, LED3_PIN, GPIO_PIN_RESET);
+        morse_running = false; // kill any active interrupt during transmission
+        
+        current_mode = (current_mode + 1) % 3;
+        HAL_Delay(50);
     }
     prev_mode_sw_state = mode_sw_state;
 
@@ -349,7 +370,7 @@ int main(void)
       case MODE_SELECT:
       {
         // ASCII debugging via LED (yellow)
-        __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, pwm_val); // we should be able to set this in numeric when the UI is done
+        // __HAL_TIM_SET_COMPARE(LED2_PORT, LED2_PIN, pwm_val); // we should be able to set this in numeric when the UI is done
         handle_letter_selection(current_letter);
         break;
       }
@@ -362,7 +383,7 @@ int main(void)
       }
       case MODE_MANUAL:
       {
-        __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 0);
+        // __HAL_TIM_SET_COMPARE(LED2_PORT, LED2_PIN, 0);
         handle_manual_mode();
         break;
       }
@@ -437,11 +458,11 @@ void handle_manual_mode()
 
   if (!isBusy)
   {
-    if (HAL_GPIO_ReadPin(DOT_PORT, DOT_PIN) == GPIO_PIN_SET && HAL_GPIO_ReadPin(DASH_PORT, DASH_PIN) == GPIO_PIN_RESET)
+    if (HAL_GPIO_ReadPin(DOT_PORT, DOT_PIN) == GPIO_PIN_SET)
     {
       handle_transmit(130);
     }
-    if (HAL_GPIO_ReadPin(DASH_PORT, DASH_PIN) == GPIO_PIN_SET && HAL_GPIO_ReadPin(DOT_PORT, DOT_PIN) == GPIO_PIN_RESET)
+    else if (HAL_GPIO_ReadPin(DASH_PORT, DASH_PIN) == GPIO_PIN_SET)
     {
       handle_transmit(390);
     }
@@ -461,7 +482,8 @@ bool handle_transmit(int pulse_duration)
     case IDLE:
       if (pulse_duration > 0)
       {
-        HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(BUZZER_PORT, BUZZER_PIN, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(LED3_PORT, LED3_PIN, GPIO_PIN_RESET);
         current_duration = pulse_duration;
         start_time = now;
         current_state = DEBOUNCE;
@@ -471,7 +493,8 @@ bool handle_transmit(int pulse_duration)
     case DEBOUNCE:
       if (now - start_time >= 10) // 10ms for confirmation
       {
-        HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_SET);
+        HAL_GPIO_WritePin(BUZZER_PORT, BUZZER_PIN, GPIO_PIN_SET);
+        HAL_GPIO_WritePin(LED3_PORT, LED3_PIN, GPIO_PIN_SET);
         start_time = now;
         current_state = SENDING;
       }
@@ -480,7 +503,8 @@ bool handle_transmit(int pulse_duration)
     case SENDING:
       if (now - start_time >= current_duration)
       {
-        HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(BUZZER_PORT, BUZZER_PIN, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(LED3_PORT, LED3_PIN, GPIO_PIN_RESET);
         start_time = now;
         current_state = GAP;
       }
@@ -511,14 +535,15 @@ void handle_ldr_receive(uint32_t threshold, uint32_t current_pwm_level) {
 
         // LIGHT IS ON
         if (ldr_val > threshold) 
-        { 
+        {
             if (!light_is_on) 
             { 
                 pulse_start = now; // Mark the start of a pulse
                 light_is_on = true;
             }
-            __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 1000); // Feedback
-            HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_SET);
+            __HAL_TIM_SET_COMPARE(LED2_PORT, LED2_PIN, 1000); // Threshold Feedback
+            HAL_GPIO_WritePin(BUZZER_PORT, BUZZER_PIN, GPIO_PIN_SET);
+            HAL_GPIO_WritePin(LED3_PORT, LED3_PIN, GPIO_PIN_SET);
             gap_start = now; // Reset the "Gap" timer because light is present
         } 
         // LIGHT IS OFF
@@ -537,8 +562,9 @@ void handle_ldr_receive(uint32_t threshold, uint32_t current_pwm_level) {
                 light_is_on = false;
                 gap_start = now; // Start timing the silence
             }
-            __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, current_pwm_level);
-            HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_RESET);
+            __HAL_TIM_SET_COMPARE(LED2_PORT, LED2_PIN, current_pwm_level);
+            HAL_GPIO_WritePin(BUZZER_PORT, BUZZER_PIN, GPIO_PIN_RESET);
+            HAL_GPIO_WritePin(LED3_PORT, LED3_PIN, GPIO_PIN_RESET);
 
             // GAP DETECTION (end of a letter)
             if (pattern_idx > 0 && (now - gap_start > (unit_duration * 3))) 
@@ -578,7 +604,7 @@ void handle_ldr_receive(uint32_t threshold, uint32_t current_pwm_level) {
 
 void reset_and_tune_handler()
 {
-  bool is_pressed = (HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_0) == GPIO_PIN_RESET);
+  bool is_pressed = (HAL_GPIO_ReadPin(ENC_SW_PORT, ENC_SW_PIN) == GPIO_PIN_RESET);
   
   // button just pushed down
   if (is_pressed && !button_was_pressed) 
@@ -624,7 +650,7 @@ void handle_letter_selection(char input_char)
 {
   // ENC_SW: add / delete / send sequence
   static uint32_t press_start = 0;
-  bool is_pressed = (HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_0) == GPIO_PIN_RESET);
+  bool is_pressed = (HAL_GPIO_ReadPin(ENC_SW_PORT, ENC_SW_PIN) == GPIO_PIN_RESET);
   
   if (is_pressed) 
     {
@@ -651,29 +677,29 @@ void status_feedback_handler(uint32_t timer)
   if (timer < 500)
   {
     // add feedback
-      HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_SET);
+      HAL_GPIO_WritePin(LED1_PORT, LED1_PIN, GPIO_PIN_SET);
       HAL_Delay(50);
-      HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);
-    // __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 100); // Feedback
+      HAL_GPIO_WritePin(LED1_PORT, LED1_PIN, GPIO_PIN_RESET);
+    // __HAL_TIM_SET_COMPARE(LED2_PORT, LED2_PIN, 100); // Feedback
 
   }
   if (timer >= 500 && timer < 1500) 
   {
     // delete feedback
-    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(LED1_PORT, LED1_PIN, GPIO_PIN_SET);
     HAL_Delay(100);
-    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(LED1_PORT, LED1_PIN, GPIO_PIN_RESET);
     HAL_Delay(100);
-    // __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 500); // Feedback
+    // __HAL_TIM_SET_COMPARE(LED2_PORT, LED2_PIN, 500); // Feedback
   
   } 
   else if (timer >= 1500 && timer < 3000) 
   {
     // send feedback
-    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(LED1_PORT, LED1_PIN, GPIO_PIN_SET);
     HAL_Delay(1500);
-    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);
-    // __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 1000); // Feedback
+    HAL_GPIO_WritePin(LED1_PORT, LED1_PIN, GPIO_PIN_RESET);
+    // __HAL_TIM_SET_COMPARE(LED2_PORT, LED2_PIN, 1000); // Feedback
   }
 }
 
@@ -713,9 +739,9 @@ void reset_after_commit()
 {
   if (ready_to_send_flag && ready_to_reset_flag && !confirm_send_flag) 
   {
-    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(LED1_PORT, LED1_PIN, GPIO_PIN_SET);
     HAL_Delay(100);
-    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(LED1_PORT, LED1_PIN, GPIO_PIN_RESET);
 
     ready_to_send_flag = false;
     ready_to_reset_flag = false;
@@ -764,8 +790,8 @@ bool lookup_and_load_pattern(char character)
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
   // If we use pointer *htim to access the chosen htim's Instance and it's not TIM2, stop the function.
-  if (htim->Instance != TIM2)
-    return;
+  if (htim->Instance != TIM2) return;
+  if (current_mode != MODE_SELECT) return; // do not run in other modes
 
   // OUTPUT LOGIC, runs every tick if the flag is set
   if (morse_running == true)
@@ -775,18 +801,21 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 
     if (select_buffer[msg_index] == ' ') 
     {
-      HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_RESET);
+      HAL_GPIO_WritePin(BUZZER_PORT, BUZZER_PIN, GPIO_PIN_RESET);
+      HAL_GPIO_WritePin(LED3_PORT, LED3_PIN, GPIO_PIN_RESET);
     }
     else 
     {
       // MORSE CODE is an alternating sequence of sound and silence (sound, silence, sound)
       if (step_counter % 2 == 0) // Checks if the current position is either EVEN or ODD
       {
-        HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_SET); // If EVEN
+        HAL_GPIO_WritePin(BUZZER_PORT, BUZZER_PIN, GPIO_PIN_SET); // If EVEN
+        HAL_GPIO_WritePin(LED3_PORT, LED3_PIN, GPIO_PIN_SET); // If EVEN
       }
       else
       {
-        HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_RESET); // If ODD
+        HAL_GPIO_WritePin(BUZZER_PORT, BUZZER_PIN, GPIO_PIN_RESET); // If ODD
+        HAL_GPIO_WritePin(LED3_PORT, LED3_PIN, GPIO_PIN_RESET); // If ODD
       }
     }
     
@@ -802,7 +831,8 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
       if (select_buffer[msg_index] == '\0')
       {
         morse_running = false;
-        HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(BUZZER_PORT, BUZZER_PIN, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(LED3_PORT, LED3_PIN, GPIO_PIN_RESET);
         msg_index = 0; // set back to default
         return;
       }

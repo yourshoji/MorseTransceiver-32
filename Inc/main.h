@@ -75,6 +75,8 @@ void Error_Handler(void);
 #define DASH_SW_GPIO_Port GPIOB
 #define BUZZER_Pin GPIO_PIN_11
 #define BUZZER_GPIO_Port GPIOB
+#define LEDB12_Pin GPIO_PIN_12
+#define LEDB12_GPIO_Port GPIOB
 #define DOT_SW_Pin GPIO_PIN_5
 #define DOT_SW_GPIO_Port GPIOB
 #define LEDB6_Pin GPIO_PIN_6
