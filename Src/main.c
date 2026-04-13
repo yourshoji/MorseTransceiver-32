@@ -19,8 +19,11 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "adc.h"
+#include "i2c.h"
 #include "tim.h"
 #include "gpio.h"
+#include "ssd1306.h"
+#include "ssd1306_fonts.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -149,6 +152,7 @@ void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
 
 // prototype for lookup helper (defined later in file)
+void Refresh_OLED_UI(SystemMode_t mode, char* buffer);
 void handle_manual_mode();
 bool handle_transmit(int pulse_duration);
 void handle_ldr_receive(uint32_t threshold, uint32_t current_pwm_level);
@@ -306,7 +310,12 @@ int main(void)
   MX_TIM3_Init();
   MX_TIM4_Init();
   MX_ADC1_Init();
+  MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
+  ssd1306_Init();
+  ssd1306_Fill(Black);
+  ssd1306_UpdateScreen();
+
   htim2.Instance = TIM2;
   htim2.Init.Prescaler = 7199; // 72 MHz / 7199+1 == 10kHz (0.1 ms)
   htim2.Init.CounterMode = TIM_COUNTERMODE_UP; // counter mode activated
@@ -355,6 +364,9 @@ int main(void)
         morse_running = false; // kill any active interrupt during transmission
         
         current_mode = (current_mode + 1) % 3;
+
+        Refresh_OLED_UI(current_mode, (char*)select_buffer);
+        
         HAL_Delay(50);
     }
     prev_mode_sw_state = mode_sw_state;
@@ -443,6 +455,28 @@ volatile size_t current_pattern_length = 0;
 
 // telling the compiler that this variable actually exist in another source file (.c)
 extern const uint16_t pattern_space[];
+
+void Refresh_OLED_UI(SystemMode_t mode, char* buffer)
+{
+  // Clear
+  ssd1306_Fill(Black);
+
+  // Header Line
+  ssd1306_Line(0, 12, 127, 12, White);
+
+  ssd1306_SetCursor(2, 0);
+  if (mode == MODE_SELECT) ssd1306_WriteString("MODE: SELECT", Font_7x10, White);
+  if (mode == MODE_RECEIVE) ssd1306_WriteString("MODE: RECEIVE", Font_7x10, White);
+  if (mode == MODE_MANUAL) ssd1306_WriteString("MODE: MANUAL", Font_7x10, White);
+  
+  ssd1306_SetCursor(2, 25);
+  ssd1306_WriteString("Text:", Font_7x10, White);
+  ssd1306_SetCursor(2, 40);
+  ssd1306_WriteString(buffer, Font_7x10, White);
+
+  // Push to OLED
+  ssd1306_UpdateScreen();
+}
 
 void handle_manual_mode()
 {
