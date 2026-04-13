@@ -40,7 +40,8 @@
 /* USER CODE BEGIN PTD */
 typedef enum 
 {
-  MODE_SELECT = 0,
+  MODE_IDLE = 0,
+  MODE_SELECT,
   MODE_RECEIVE,
   MODE_MANUAL
 } SystemMode_t;
@@ -101,7 +102,7 @@ TIM_HandleTypeDef htim2;
 #define MAX_BUFFER 128
 
 // mode selection
-volatile SystemMode_t current_mode = MODE_SELECT;
+volatile SystemMode_t current_mode = MODE_IDLE;
 GPIO_PinState prev_mode_sw_state = false;
 
 // rotary encoder name-input variables
@@ -152,7 +153,9 @@ void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
 
 // prototype for lookup helper (defined later in file)
-void Refresh_OLED_UI(SystemMode_t mode, char* buffer);
+void letter_change_on_roll(char letter);
+void play_intro_ui();
+void refresh_n_setup_ui(SystemMode_t mode, char* buffer);
 void handle_manual_mode();
 bool handle_transmit(int pulse_duration);
 void handle_ldr_receive(uint32_t threshold, uint32_t current_pwm_level);
@@ -313,8 +316,10 @@ int main(void)
   MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
   ssd1306_Init();
-  ssd1306_Fill(Black);
+  // play intro
+  play_intro_ui();
   ssd1306_UpdateScreen();
+
 
   htim2.Instance = TIM2;
   htim2.Init.Prescaler = 7199; // 72 MHz / 7199+1 == 10kHz (0.1 ms)
@@ -363,20 +368,27 @@ int main(void)
         HAL_GPIO_WritePin(LED3_PORT, LED3_PIN, GPIO_PIN_RESET);
         morse_running = false; // kill any active interrupt during transmission
         
-        current_mode = (current_mode + 1) % 3;
+        current_mode = (current_mode + 1) % 4;
 
-        Refresh_OLED_UI(current_mode, (char*)select_buffer);
+        refresh_n_setup_ui(current_mode, (char*)select_buffer);
         
         HAL_Delay(50);
     }
     prev_mode_sw_state = mode_sw_state;
 
     switch (current_mode) {
+      case MODE_IDLE:
+      {
+        // hey
+        break;
+      }
       case MODE_SELECT:
       {
         // ASCII debugging via LED (yellow)
         // __HAL_TIM_SET_COMPARE(LED2_PORT, LED2_PIN, pwm_val); // we should be able to set this in numeric when the UI is done
         handle_letter_selection(current_letter);
+        update_buffer(select_idx, select_buffer);
+        letter_change_on_roll(current_letter);
         break;
       }
       case MODE_RECEIVE:
@@ -384,6 +396,7 @@ int main(void)
         // encoder usage: LDR threshold
         threshold_index = letter_index * 150;
         handle_ldr_receive(threshold_index, pwm_val);
+        update_buffer(receive_idx, receive_buffer);
         break;
       }
       case MODE_MANUAL:
@@ -456,7 +469,81 @@ volatile size_t current_pattern_length = 0;
 // telling the compiler that this variable actually exist in another source file (.c)
 extern const uint16_t pattern_space[];
 
-void Refresh_OLED_UI(SystemMode_t mode, char* buffer)
+void update_buffer(int idx, char* buffer)
+{
+  static int prev_idx = -1;
+
+  if (idx != prev_idx)
+  {
+    // clear the old letters
+  	ssd1306_SetCursor(2, 40);
+  	ssd1306_WriteString("                                ", Font_7x10, White);
+    
+    ssd1306_SetCursor(2, 40);
+    ssd1306_WriteString(buffer, Font_7x10, White);
+
+    ssd1306_UpdateScreen();
+
+    // update the tracker
+    prev_idx = idx;
+  }
+}
+
+void letter_change_on_roll(char letter)
+{
+  static char prev_letter = '\0'; // use static so it lives even after the function finishes
+
+  if (letter != prev_letter)
+  {
+    // clear the old letter
+    ssd1306_SetCursor(105, 25);
+    ssd1306_WriteString(" ", Font_11x18, White);
+    
+    ssd1306_SetCursor(105, 25);
+    // put the character into a string, since its Write"String"
+    // lock it up so it doesnt keep reading beyond the letter
+    char str[2] = {letter, '\0'};
+    ssd1306_WriteString(str, Font_11x18, White);
+
+    ssd1306_UpdateScreen();
+
+    // update the tracker
+    prev_letter = letter;
+  }
+}
+
+void play_intro_ui() 
+{
+    ssd1306_Fill(Black);
+    
+    // Title
+    ssd1306_SetCursor(30, 15);
+    ssd1306_WriteString("MCT-32", Font_11x18, White);
+    
+    // Animation: Growing line
+    for(uint8_t i = 0; i < 128; i += 8) {
+        ssd1306_Line(0, 45, i, 45, White);
+        ssd1306_UpdateScreen();
+        HAL_Delay(50); // control the speed of the "loading"
+    }
+    
+    ssd1306_SetCursor(20, 50);
+    ssd1306_WriteString("SYSTEM READY", Font_7x10, White);
+    ssd1306_UpdateScreen();
+    
+    HAL_Delay(3000); // pause for 3s
+
+    // clear
+    ssd1306_SetCursor(15, 50);
+    ssd1306_WriteString("            ", Font_7x10, White);
+
+    ssd1306_SetCursor(15, 50);
+    ssd1306_WriteString("PRESS TO START", Font_7x10, White);
+
+    ssd1306_UpdateScreen();
+}
+
+void refresh_n_setup_ui(SystemMode_t mode, char* buffer)
 {
   // Clear
   ssd1306_Fill(Black);
@@ -465,14 +552,13 @@ void Refresh_OLED_UI(SystemMode_t mode, char* buffer)
   ssd1306_Line(0, 12, 127, 12, White);
 
   ssd1306_SetCursor(2, 0);
+  if (mode == MODE_IDLE) ssd1306_WriteString("MODE: IDLE", Font_7x10, White);
   if (mode == MODE_SELECT) ssd1306_WriteString("MODE: SELECT", Font_7x10, White);
   if (mode == MODE_RECEIVE) ssd1306_WriteString("MODE: RECEIVE", Font_7x10, White);
   if (mode == MODE_MANUAL) ssd1306_WriteString("MODE: MANUAL", Font_7x10, White);
   
   ssd1306_SetCursor(2, 25);
   ssd1306_WriteString("Text:", Font_7x10, White);
-  ssd1306_SetCursor(2, 40);
-  ssd1306_WriteString(buffer, Font_7x10, White);
 
   // Push to OLED
   ssd1306_UpdateScreen();
