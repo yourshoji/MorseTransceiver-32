@@ -153,7 +153,10 @@ void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
 
 // prototype for lookup helper (defined later in file)
-void letter_change_on_roll(char letter);
+void update_buffer_ui(int idx, volatile char* buffer);
+void unit_duration_receive_ui(int unit);
+void index_roll_select(int idx);
+void letter_roll_select_ui(char letter);
 void play_intro_ui();
 void refresh_n_setup_ui(SystemMode_t mode, char* buffer);
 void handle_manual_mode();
@@ -387,8 +390,8 @@ int main(void)
         // ASCII debugging via LED (yellow)
         // __HAL_TIM_SET_COMPARE(LED2_PORT, LED2_PIN, pwm_val); // we should be able to set this in numeric when the UI is done
         handle_letter_selection(current_letter);
-        update_buffer(select_idx, select_buffer);
-        letter_change_on_roll(current_letter);
+        update_buffer_ui(select_idx, select_buffer);
+        letter_roll_select_ui(current_letter);
         break;
       }
       case MODE_RECEIVE:
@@ -396,7 +399,9 @@ int main(void)
         // encoder usage: LDR threshold
         threshold_index = letter_index * 150;
         handle_ldr_receive(threshold_index, pwm_val);
-        update_buffer(receive_idx, receive_buffer);
+        update_buffer_ui(receive_idx, receive_buffer);
+        index_roll_receive_ui(threshold_index);
+        unit_duration_receive_ui(unit_duration);
         break;
       }
       case MODE_MANUAL:
@@ -469,18 +474,31 @@ volatile size_t current_pattern_length = 0;
 // telling the compiler that this variable actually exist in another source file (.c)
 extern const uint16_t pattern_space[];
 
-void update_buffer(int idx, char* buffer)
+void update_buffer_ui(int idx, volatile char* buffer)
 {
   static int prev_idx = -1;
 
   if (idx != prev_idx)
   {
     // clear the old letters
-  	ssd1306_SetCursor(2, 40);
+  	ssd1306_SetCursor(2, 38);
   	ssd1306_WriteString("                                ", Font_7x10, White);
+  	ssd1306_SetCursor(2, 50);
+  	ssd1306_WriteString("                                ", Font_7x10, White);
+
+    char line1[20] = {0};
+    char line2[20] = {0};
     
-    ssd1306_SetCursor(2, 40);
-    ssd1306_WriteString(buffer, Font_7x10, White);
+    strncpy(line1, buffer, 18);
+    ssd1306_SetCursor(2, 38);
+    ssd1306_WriteString(line1, Font_7x10, White);
+
+    if (strlen(buffer) > 18)
+    {
+      strncpy(line2, buffer + 18, 18);
+      ssd1306_SetCursor(2, 50);
+      ssd1306_WriteString(line2, Font_7x10, White);
+    }
 
     ssd1306_UpdateScreen();
 
@@ -489,17 +507,63 @@ void update_buffer(int idx, char* buffer)
   }
 }
 
-void letter_change_on_roll(char letter)
+void unit_duration_receive_ui(int unit)
+{
+  static int prev_unit = -1;
+
+  if (unit != prev_unit)
+  {
+    // clear the old letter
+    ssd1306_SetCursor(30, 20);
+    ssd1306_WriteString("     ", Font_7x10, White);
+    
+    char str[20] = {unit, '\0'};
+    snprintf(str, sizeof(str), "%dms", unit);
+    
+    ssd1306_SetCursor(30, 20);
+    ssd1306_WriteString(str, Font_7x10, White);
+
+    ssd1306_UpdateScreen();
+
+    // update the tracker
+    prev_unit = unit;
+  }
+}
+
+void index_roll_receive_ui(int idx)
+{
+  static int prev_idx = -1; // use static so it lives even after the function finishes
+
+  if (idx != prev_idx)
+  {
+    // clear the old letter
+    ssd1306_SetCursor(70, 20);
+    ssd1306_WriteString("   ", Font_7x10, White);
+    
+    char str[5] = {idx, '\0'};
+    snprintf(str, sizeof(str), "%d", idx);
+    
+    ssd1306_SetCursor(70, 20);
+    ssd1306_WriteString(str, Font_7x10, White);
+
+    ssd1306_UpdateScreen();
+
+    // update the tracker
+    prev_idx = idx;
+  }
+}
+
+void letter_roll_select_ui(char letter)
 {
   static char prev_letter = '\0'; // use static so it lives even after the function finishes
 
   if (letter != prev_letter)
   {
     // clear the old letter
-    ssd1306_SetCursor(105, 25);
+    ssd1306_SetCursor(105, 20);
     ssd1306_WriteString(" ", Font_11x18, White);
     
-    ssd1306_SetCursor(105, 25);
+    ssd1306_SetCursor(105, 20);
     // put the character into a string, since its Write"String"
     // lock it up so it doesnt keep reading beyond the letter
     char str[2] = {letter, '\0'};
@@ -531,7 +595,7 @@ void play_intro_ui()
     ssd1306_WriteString("SYSTEM READY", Font_7x10, White);
     ssd1306_UpdateScreen();
     
-    HAL_Delay(3000); // pause for 3s
+    HAL_Delay(1500); // pause for 3s
 
     // clear
     ssd1306_SetCursor(15, 50);
@@ -553,13 +617,15 @@ void refresh_n_setup_ui(SystemMode_t mode, char* buffer)
 
   ssd1306_SetCursor(2, 0);
   if (mode == MODE_IDLE) ssd1306_WriteString("MODE: IDLE", Font_7x10, White);
-  if (mode == MODE_SELECT) ssd1306_WriteString("MODE: SELECT", Font_7x10, White);
+  if (mode == MODE_SELECT) 
+  {
+    ssd1306_WriteString("MODE: SELECT", Font_7x10, White);
+    ssd1306_SetCursor(2, 20);
+    ssd1306_WriteString("Text:", Font_7x10, White);
+  }
   if (mode == MODE_RECEIVE) ssd1306_WriteString("MODE: RECEIVE", Font_7x10, White);
   if (mode == MODE_MANUAL) ssd1306_WriteString("MODE: MANUAL", Font_7x10, White);
   
-  ssd1306_SetCursor(2, 25);
-  ssd1306_WriteString("Text:", Font_7x10, White);
-
   // Push to OLED
   ssd1306_UpdateScreen();
 }
