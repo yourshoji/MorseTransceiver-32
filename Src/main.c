@@ -154,8 +154,10 @@ void SystemClock_Config(void);
 
 // prototype for lookup helper (defined later in file)
 void update_buffer_ui(int idx, volatile char* buffer);
+void idle_ui();
+void paddle_feedback_manual_ui();
 void unit_duration_receive_ui(int unit);
-void index_roll_select(int idx);
+void index_roll_receive_ui(int idx);
 void letter_roll_select_ui(char letter);
 void play_intro_ui();
 void refresh_n_setup_ui(SystemMode_t mode, char* buffer);
@@ -361,6 +363,7 @@ int main(void)
     {
       current_letter = ' ';
     }
+
     volatile GPIO_PinState mode_sw_state = HAL_GPIO_ReadPin(MODE_SW_PORT, MODE_SW_PIN);
 
     // mode changer
@@ -382,7 +385,7 @@ int main(void)
     switch (current_mode) {
       case MODE_IDLE:
       {
-        // hey
+        idle_ui();
         break;
       }
       case MODE_SELECT:
@@ -406,8 +409,8 @@ int main(void)
       }
       case MODE_MANUAL:
       {
-        // __HAL_TIM_SET_COMPARE(LED2_PORT, LED2_PIN, 0);
         handle_manual_mode();
+        paddle_feedback_manual_ui();
         break;
       }
     }
@@ -507,6 +510,54 @@ void update_buffer_ui(int idx, volatile char* buffer)
   }
 }
 
+void idle_ui()
+{ 
+  static uint32_t prev_min = 0;
+  uint32_t current_min = HAL_GetTick() / 60000;
+
+  if (current_min > prev_min)
+  {
+    char time_msg[20];
+    snprintf(time_msg, sizeof(time_msg), "Uptime: %lu min(s)", current_min);
+
+    ssd1306_SetCursor(2, 50);
+    ssd1306_WriteString("                    ", Font_7x10, White);
+    ssd1306_SetCursor(2, 50);
+    ssd1306_WriteString(time_msg, Font_7x10, White);
+  
+    ssd1306_UpdateScreen();
+
+    prev_min = current_min;
+  }
+
+}
+
+void paddle_feedback_manual_ui()
+{
+  // DOT
+  if (HAL_GPIO_ReadPin(DOT_PORT, DOT_PIN) == GPIO_PIN_SET)
+  {
+    ssd1306_FillRectangle(30, 30, 40, 40, White);
+  }
+  else
+  {
+    ssd1306_FillRectangle(30, 30, 40, 40, Black);
+    ssd1306_DrawRectangle(30, 30, 40, 40, White);
+  }
+
+  // DASH
+  if (HAL_GPIO_ReadPin(DASH_PORT, DASH_PIN) == GPIO_PIN_SET)
+  {
+    ssd1306_FillRectangle(87, 30, 97, 40, White);
+  }
+  else
+  {
+    ssd1306_FillRectangle(87, 30, 97, 40, Black);
+    ssd1306_DrawRectangle(87, 30, 97, 40, White);
+  }
+  ssd1306_UpdateScreen();
+}
+
 void unit_duration_receive_ui(int unit)
 {
   static int prev_unit = -1;
@@ -580,17 +631,21 @@ void play_intro_ui()
 {
     ssd1306_Fill(Black);
     
-    // Title
-    ssd1306_SetCursor(30, 15);
+    // title
+    ssd1306_SetCursor(30, 10); // 15
     ssd1306_WriteString("MCT-32", Font_11x18, White);
     
-    // Animation: Growing line
+    // version
+    ssd1306_SetCursor(85, 30);
+    ssd1306_WriteString("v1.0.0", Font_6x8, White); 
+
+    // animation: growing line
     for(uint8_t i = 0; i < 128; i += 8) {
         ssd1306_Line(0, 45, i, 45, White);
         ssd1306_UpdateScreen();
         HAL_Delay(50); // control the speed of the "loading"
     }
-    
+
     ssd1306_SetCursor(20, 50);
     ssd1306_WriteString("SYSTEM READY", Font_7x10, White);
     ssd1306_UpdateScreen();
@@ -609,14 +664,22 @@ void play_intro_ui()
 
 void refresh_n_setup_ui(SystemMode_t mode, char* buffer)
 {
-  // Clear
+  // clear
   ssd1306_Fill(Black);
 
-  // Header Line
+  // header line
   ssd1306_Line(0, 12, 127, 12, White);
 
   ssd1306_SetCursor(2, 0);
-  if (mode == MODE_IDLE) ssd1306_WriteString("MODE: IDLE", Font_7x10, White);
+  if (mode == MODE_IDLE) 
+  {
+    ssd1306_WriteString("MODE: IDLE", Font_7x10, White);
+    ssd1306_SetCursor(2, 20);
+    ssd1306_WriteString("Slow down,", Font_7x10, White);
+    ssd1306_SetCursor(2, 30);
+    ssd1306_WriteString("let's take a break", Font_7x10, White);
+
+  }
   if (mode == MODE_SELECT) 
   {
     ssd1306_WriteString("MODE: SELECT", Font_7x10, White);
@@ -624,8 +687,16 @@ void refresh_n_setup_ui(SystemMode_t mode, char* buffer)
     ssd1306_WriteString("Text:", Font_7x10, White);
   }
   if (mode == MODE_RECEIVE) ssd1306_WriteString("MODE: RECEIVE", Font_7x10, White);
-  if (mode == MODE_MANUAL) ssd1306_WriteString("MODE: MANUAL", Font_7x10, White);
+  if (mode == MODE_MANUAL) 
+  {
+    ssd1306_WriteString("MODE: MANUAL", Font_7x10, White);
   
+    ssd1306_SetCursor(25, 20);
+    ssd1306_WriteString("DOT", Font_7x10, White);
+    
+    ssd1306_SetCursor(80, 20);
+    ssd1306_WriteString("DASH", Font_7x10, White);
+  }
   // Push to OLED
   ssd1306_UpdateScreen();
 }
