@@ -325,7 +325,6 @@ int main(void)
   play_intro_ui();
   ssd1306_UpdateScreen();
 
-
   htim2.Instance = TIM2;
   htim2.Init.Prescaler = 7199; // 72 MHz / 7199+1 == 10kHz (0.1 ms)
   htim2.Init.CounterMode = TIM_COUNTERMODE_UP; // counter mode activated
@@ -868,8 +867,12 @@ void reset_and_tune_handler()
     uint32_t duration = HAL_GetTick() - press_start_time;
 
     // reset buffer
-    if (duration > 2000) 
+    if (duration >= 1000 && duration < 3000) 
     {
+      HAL_GPIO_WritePin(LED1_PORT, LED1_PIN, GPIO_PIN_SET);
+      HAL_Delay(100);
+      HAL_GPIO_WritePin(LED1_PORT, LED1_PIN, GPIO_PIN_RESET);
+
       reset_receive_buffer();
     }
     else if (duration > 50)
