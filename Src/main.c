@@ -36,21 +36,6 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-typedef enum 
-{
-  MODE_IDLE = 0,
-  MODE_SELECT,
-  MODE_RECEIVE,
-  MODE_MANUAL
-} SystemMode_t;
-
-typedef enum 
-{
-  IDLE,
-  DEBOUNCE,
-  SENDING,
-  GAP
-} SubState_t;
 
 /* USER CODE END PTD */
 
@@ -71,78 +56,52 @@ extern TIM_HandleTypeDef htim3;
 extern TIM_HandleTypeDef htim4;
 TIM_HandleTypeDef htim2;
 
-// Define pins
-#define DOT_PORT        GPIOB
-#define DOT_PIN         GPIO_PIN_5
-#define DASH_PORT       GPIOB
-#define DASH_PIN        GPIO_PIN_10
-#define BUZZER_PORT     GPIOB
-#define BUZZER_PIN      GPIO_PIN_11
-#define MODE_SW_PORT    GPIOA
-#define MODE_SW_PIN     GPIO_PIN_2
-#define ENC_SW_PORT     GPIOB
-#define ENC_SW_PIN      GPIO_PIN_0
-#define LED1_PORT       GPIOA
-#define LED1_PIN        GPIO_PIN_5
-#define LED2_PORT       &htim4
-#define LED2_PIN        TIM_CHANNEL_1
-#define LED3_PORT       GPIOB
-#define LED3_PIN        GPIO_PIN_12
+const uint16_t unit_presets[TOTAL_PRESETS] = {130, 150, 200};
 
-// define durations
-#define time_dot  1300 // 130ms
-#define time_dash 3900  // 390ms
-#define gap_sym   1300  // gap between parts of a letter (130ms)
-#define gap_char  3900 // gap between letters (390ms)
-#define gap_word  9100 // gap between words (910ms)
+SystemState_t sys =
+{
+  .current_mode = MODE_IDLE,
+  .prev_mode_sw_state = GPIO_PIN_SET
+};
 
-// define buffer capacity
-#define MAX_BUFFER 128
+TransmitState_t tx = 
+{
+  .buffer          = {0},
+  .index           = 0,
+  .letter_idx      = 0, 
+  .current_char    = 'A',
 
-// mode selection
-volatile SystemMode_t current_mode = MODE_IDLE;
-GPIO_PinState prev_mode_sw_state = false;
+  .ready_to_send   = false,
+  .confirm_send    = false,
+  .ready_to_reset  = false,
 
-// rotary encoder name-input variables
-volatile char select_buffer[MAX_BUFFER] = {0}; // reserve and clear space
-volatile int select_idx = 0;
-volatile bool confirm_send_flag = false;
-volatile bool ready_to_send_flag = false;
-volatile bool ready_to_reset_flag = false;
+  .pattern_ptr     = NULL,
+  .pattern_length  = 0,
+  .is_running      = false,
+  .msg_ptr         = 0,
+  .step            = 0
+};
 
-// morse transmission state
-volatile size_t msg_index = 0; // tracks the current character being processed
-volatile bool morse_running = false;
-volatile int step_counter = 0;
+ReceiveState_t rx = 
+{ 
+  .ldr_val            = 0,
+  .threshold_idx      = 0,
+  .unit_duration      = 130, // default
 
-// receiver mode variables
-char temp_pattern[8] = {0};      // stores dots/dashes for the current letter
-int pattern_idx = 0;           // current position in temp_pattern
-uint32_t pulse_start = 0;        // when the light turned ON
-uint32_t gap_start = 0;          // when the light turned OFF
-bool light_is_on = false;        // flag to track LDR state
-// receive mode buffer
-volatile char receive_buffer[MAX_BUFFER] = {0};
-// unit duration
-volatile uint8_t unit_duration = 130; // 130 as default
-volatile int receive_idx = 0;
-// tuner
-const uint16_t unit_presets[] = {130, 150, 200};
-const int total_presets = 3;
-volatile int preset_idx = 0;
-// tuner and reset function
-static uint32_t press_start_time = 0;
-static bool button_was_pressed = false;
+  .temp_pattern       = {0},
+  .pattern_idx        = 0,
+  .pulse_start        = 0,
+  .gap_start          = 0,
+  .is_light_on        = false,
 
-// for debugging
-volatile uint32_t letter_index;
-volatile char current_letter;
-volatile char found;
-volatile uint32_t ldr_val;
-volatile uint32_t threshold_index;
+  .buffer             = {0},
+  .index              = 0,
+  .found_char         = '\0',
 
-// telling the compiler that this variable actually exist in another source file (.c)
-extern const uint16_t pattern_space[];
+  .preset_idx         = 0,
+  .press_start_time   = 0,
+  .button_was_pressed = false
+};
 
 /* USER CODE END PV */
 
@@ -151,11 +110,11 @@ void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
 
 // prototype for lookup helper (defined later in file)
-void update_buffer_ui(int idx, volatile char* buffer);
+void update_buffer_ui(int idx, char* buffer);
 void idle_ui();
 void paddle_feedback_manual_ui();
 void unit_duration_receive_ui(int unit);
-void index_roll_receive_ui(int idx);
+void idx_roll_receive_ui(int idx);
 void letter_roll_select_ui(char letter);
 void play_intro_ui();
 void refresh_n_setup_ui(SystemMode_t mode, char* buffer);
@@ -176,108 +135,6 @@ bool lookup_and_load_pattern(char character);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
-// Durations for Receiver Mode
-const char* morse_lookup[] = {
-    ".-",    // A
-    "-...",  // B
-    "-.-.",  // C
-    "-..",   // D
-    ".",     // E
-    "..-.",  // F
-    "--.",   // G
-    "....",  // H
-    "..",    // I
-    ".---",  // J
-    "-.-",   // K
-    ".-..",  // L
-    "--",    // M
-    "-.",    // N
-    "---",   // O
-    ".--.",  // P
-    "--.-",  // Q
-    ".-.",   // R
-    "...",   // S
-    "-",     // T
-    "..-",   // U
-    "...-",  // V
-    ".--",   // W
-    "-..-",  // X
-    "-.--",  // Y
-    "--.."   // Z
-};
-
-typedef struct
-{
-  char character;
-  const uint16_t *pattern_data;
-  size_t length; // count the total morse code used in each alphabet by calculating in bytes, size_t is used for holding the result of sizeof()
-} MorseMapping_t;
-
-// [PATTERN DATA ARRAYS]
-// Format: { Sound, Silence, Sound, Silence }
-// MORSE PATTERNS A–Z
-const uint16_t pattern_a[] = {time_dot, gap_sym, time_dash, gap_char};                           // .-
-const uint16_t pattern_b[] = {time_dash, gap_sym, time_dot, gap_sym, time_dot, gap_sym, time_dot, gap_char};  // -...
-const uint16_t pattern_c[] = {time_dash, gap_sym, time_dot, gap_sym, time_dash, gap_sym, time_dot, gap_char}; // -.-.
-const uint16_t pattern_d[] = {time_dash, gap_sym, time_dot, gap_sym, time_dot, gap_char};        // -..
-const uint16_t pattern_e[] = {time_dot, gap_char};                                               // .
-const uint16_t pattern_f[] = {time_dot, gap_sym, time_dot, gap_sym, time_dash, gap_sym, time_dot, gap_char};   // ..-.
-const uint16_t pattern_g[] = {time_dash, gap_sym, time_dash, gap_sym, time_dot, gap_char};       // --.
-const uint16_t pattern_h[] = {time_dot, gap_sym, time_dot, gap_sym, time_dot, gap_sym, time_dot, gap_char};    // ....
-const uint16_t pattern_i[] = {time_dot, gap_sym, time_dot, gap_char};                            // ..
-const uint16_t pattern_j[] = {time_dot, gap_sym, time_dash, gap_sym, time_dash, gap_sym, time_dash, gap_char}; // .---
-const uint16_t pattern_k[] = {time_dash, gap_sym, time_dot, gap_sym, time_dash, gap_char};       // -.-
-const uint16_t pattern_l[] = {time_dot, gap_sym, time_dash, gap_sym, time_dot, gap_sym, time_dot, gap_char};   // .-..
-const uint16_t pattern_m[] = {time_dash, gap_sym, time_dash, gap_char};                          // --
-const uint16_t pattern_n[] = {time_dash, gap_sym, time_dot, gap_char};                           // -.
-const uint16_t pattern_o[] = {time_dash, gap_sym, time_dash, gap_sym, time_dash, gap_char};      // ---
-const uint16_t pattern_p[] = {time_dot, gap_sym, time_dash, gap_sym, time_dash, gap_sym, time_dot, gap_char};  // .--.
-const uint16_t pattern_q[] = {time_dash, gap_sym, time_dash, gap_sym, time_dot, gap_sym, time_dash, gap_char}; // --.-
-const uint16_t pattern_r[] = {time_dot, gap_sym, time_dash, gap_sym, time_dot, gap_char};        // .-.
-const uint16_t pattern_s[] = {time_dot, gap_sym, time_dot, gap_sym, time_dot, gap_char};         // ...
-const uint16_t pattern_t[] = {time_dash, gap_char};                                              // -
-const uint16_t pattern_u[] = {time_dot, gap_sym, time_dot, gap_sym, time_dash, gap_char};        // ..-
-const uint16_t pattern_v[] = {time_dot, gap_sym, time_dot, gap_sym, time_dot, gap_sym, time_dash, gap_char};   // ...-
-const uint16_t pattern_w[] = {time_dot, gap_sym, time_dash, gap_sym, time_dash, gap_char};       // .--
-const uint16_t pattern_x[] = {time_dash, gap_sym, time_dot, gap_sym, time_dot, gap_sym, time_dash, gap_char};  // -..-
-const uint16_t pattern_y[] = {time_dash, gap_sym, time_dot, gap_sym, time_dash, gap_sym, time_dash, gap_char}; // -.--
-const uint16_t pattern_z[] = {time_dash, gap_sym, time_dash, gap_sym, time_dot, gap_sym, time_dot, gap_char};  // --..
-const uint16_t pattern_space[] = {gap_word}; // space or gap
-
-// LOOKUP TABLE
-const MorseMapping_t morse_lookup_table[] = {
-    {'A', pattern_a, sizeof(pattern_a)/sizeof(uint16_t)},
-    {'B', pattern_b, sizeof(pattern_b)/sizeof(uint16_t)},
-    {'C', pattern_c, sizeof(pattern_c)/sizeof(uint16_t)},
-    {'D', pattern_d, sizeof(pattern_d)/sizeof(uint16_t)},
-    {'E', pattern_e, sizeof(pattern_e)/sizeof(uint16_t)},
-    {'F', pattern_f, sizeof(pattern_f)/sizeof(uint16_t)},
-    {'G', pattern_g, sizeof(pattern_g)/sizeof(uint16_t)},
-    {'H', pattern_h, sizeof(pattern_h)/sizeof(uint16_t)},
-    {'I', pattern_i, sizeof(pattern_i)/sizeof(uint16_t)},
-    {'J', pattern_j, sizeof(pattern_j)/sizeof(uint16_t)},
-    {'K', pattern_k, sizeof(pattern_k)/sizeof(uint16_t)},
-    {'L', pattern_l, sizeof(pattern_l)/sizeof(uint16_t)},
-    {'M', pattern_m, sizeof(pattern_m)/sizeof(uint16_t)},
-    {'N', pattern_n, sizeof(pattern_n)/sizeof(uint16_t)},
-    {'O', pattern_o, sizeof(pattern_o)/sizeof(uint16_t)},
-    {'P', pattern_p, sizeof(pattern_p)/sizeof(uint16_t)},
-    {'Q', pattern_q, sizeof(pattern_q)/sizeof(uint16_t)},
-    {'R', pattern_r, sizeof(pattern_r)/sizeof(uint16_t)},
-    {'S', pattern_s, sizeof(pattern_s)/sizeof(uint16_t)},
-    {'T', pattern_t, sizeof(pattern_t)/sizeof(uint16_t)},
-    {'U', pattern_u, sizeof(pattern_u)/sizeof(uint16_t)},
-    {'V', pattern_v, sizeof(pattern_v)/sizeof(uint16_t)},
-    {'W', pattern_w, sizeof(pattern_w)/sizeof(uint16_t)},
-    {'X', pattern_x, sizeof(pattern_x)/sizeof(uint16_t)},
-    {'Y', pattern_y, sizeof(pattern_y)/sizeof(uint16_t)},
-    {'Z', pattern_z, sizeof(pattern_z)/sizeof(uint16_t)},
-    {' ', pattern_space, sizeof(pattern_space)/sizeof(uint16_t)}
-};
-
-// Total size of the lookup table
-const size_t morse_lookup_length = sizeof(morse_lookup_table) / sizeof(morse_lookup_table[0]);
 
 /* USER CODE END 0 */
 
@@ -319,7 +176,6 @@ int main(void)
   ssd1306_Init();
   // play intro
   play_intro_ui();
-  ssd1306_UpdateScreen();
 
   htim2.Instance = TIM2;
   htim2.Init.Prescaler = 7199; // 72 MHz / 7199+1 == 10kHz (0.1 ms)
@@ -347,37 +203,37 @@ int main(void)
     uint32_t raw_cnt = __HAL_TIM_GET_COUNTER(&htim3);
 
     // encoder usage: letter scroller
-    letter_index = (raw_cnt / 4) % 27; // wrap it up as a safety
-    uint32_t pwm_val = (letter_index * 1000) / 25;
+    tx.letter_idx = (raw_cnt / 4) % 27; // wrap it up as a safety
+    uint32_t pwm_val = (tx.letter_idx * 1000) / 25;
     // conditional for blank space
-    if (letter_index < 26) 
+    if (tx.letter_idx < 26) 
     {
-      current_letter = 'A' + letter_index; 
+      tx.current_char = 'A' + tx.letter_idx; 
     }
     else 
     {
-      current_letter = ' ';
+      tx.current_char = ' ';
     }
 
     volatile GPIO_PinState mode_sw_state = HAL_GPIO_ReadPin(MODE_SW_PORT, MODE_SW_PIN);
 
     // mode changer
-    if (mode_sw_state == GPIO_PIN_RESET && prev_mode_sw_state == GPIO_PIN_SET)
+    if (mode_sw_state == GPIO_PIN_RESET && sys.prev_mode_sw_state == GPIO_PIN_SET)
     {
         // clean up before switching
         HAL_GPIO_WritePin(BUZZER_PORT, BUZZER_PIN, GPIO_PIN_RESET);
         HAL_GPIO_WritePin(LED3_PORT, LED3_PIN, GPIO_PIN_RESET);
-        morse_running = false; // kill any active interrupt during transmission
+        tx.is_running = false; // kill any active interrupt during transmission
         
-        current_mode = (current_mode + 1) % 4;
+        sys.current_mode = (sys.current_mode + 1) % 4;
 
-        refresh_n_setup_ui(current_mode, (char*)select_buffer);
+        refresh_n_setup_ui(sys.current_mode, (char*)tx.buffer);
         
         HAL_Delay(50);
     }
-    prev_mode_sw_state = mode_sw_state;
+    sys.prev_mode_sw_state = mode_sw_state;
 
-    switch (current_mode) {
+    switch (sys.current_mode) {
       case MODE_IDLE:
       {
         idle_ui();
@@ -386,19 +242,19 @@ int main(void)
       case MODE_SELECT:
       {
         // ASCII debugging via LED (yellow)
-        handle_letter_selection(current_letter);
-        update_buffer_ui(select_idx, select_buffer);
-        letter_roll_select_ui(current_letter);
+        handle_letter_selection(tx.current_char);
+        update_buffer_ui(tx.index, tx.buffer);
+        letter_roll_select_ui(tx.current_char);
         break;
       }
       case MODE_RECEIVE:
       {
         // encoder usage: LDR threshold
-        threshold_index = letter_index * 150;
-        handle_ldr_receive(threshold_index, pwm_val);
-        update_buffer_ui(receive_idx, receive_buffer);
-        index_roll_receive_ui(threshold_index);
-        unit_duration_receive_ui(unit_duration);
+        rx.threshold_idx = tx.letter_idx * 150;
+        handle_ldr_receive(rx.threshold_idx, pwm_val);
+        update_buffer_ui(rx.index, rx.buffer);
+        idx_roll_receive_ui(rx.threshold_idx);
+        unit_duration_receive_ui(rx.unit_duration);
         break;
       }
       case MODE_MANUAL:
@@ -464,14 +320,10 @@ void SystemClock_Config(void)
 
 /* USER CODE BEGIN 4 */
 
-// pointers to the active pattern and its length (must be set by the lookup function)
-volatile const uint16_t *current_pattern_ptr = NULL; // points to the PATTERN w/o the need to reassign it
-volatile size_t current_pattern_length = 0;
+// // telling the compiler that this variable actually exist in another source file (.c)
+// extern const uint16_t pattern_space[];
 
-// telling the compiler that this variable actually exist in another source file (.c)
-extern const uint16_t pattern_space[];
-
-void update_buffer_ui(int idx, volatile char* buffer)
+void update_buffer_ui(int idx, char* buffer)
 {
   static int prev_idx = -1;
 
@@ -509,6 +361,7 @@ void idle_ui()
   static uint32_t prev_min = 0;
   uint32_t current_min = HAL_GetTick() / 60000;
 
+  // shows current uptime in minutes
   if (current_min > prev_min)
   {
     char time_msg[20];
@@ -562,7 +415,7 @@ void unit_duration_receive_ui(int unit)
     ssd1306_SetCursor(30, 20);
     ssd1306_WriteString("     ", Font_7x10, White);
     
-    char str[20] = {unit, '\0'};
+    char str[20] = {0};
     snprintf(str, sizeof(str), "%dms", unit);
     
     ssd1306_SetCursor(30, 20);
@@ -575,7 +428,7 @@ void unit_duration_receive_ui(int unit)
   }
 }
 
-void index_roll_receive_ui(int idx)
+void idx_roll_receive_ui(int idx)
 {
   static int prev_idx = -1; // use static so it lives even after the function finishes
 
@@ -585,7 +438,7 @@ void index_roll_receive_ui(int idx)
     ssd1306_SetCursor(70, 20);
     ssd1306_WriteString("   ", Font_7x10, White);
     
-    char str[5] = {idx, '\0'};
+    char str[5] = {0};
     snprintf(str, sizeof(str), "%d", idx);
     
     ssd1306_SetCursor(70, 20);
@@ -672,7 +525,6 @@ void refresh_n_setup_ui(SystemMode_t mode, char* buffer)
     ssd1306_WriteString("Slow down,", Font_7x10, White);
     ssd1306_SetCursor(2, 30);
     ssd1306_WriteString("let's take a break", Font_7x10, White);
-
   }
   if (mode == MODE_SELECT) 
   {
@@ -773,71 +625,71 @@ void handle_ldr_receive(uint32_t threshold, uint32_t current_pwm_level) {
 
     HAL_ADC_Start(&hadc1);
     if (HAL_ADC_PollForConversion(&hadc1, 10) == HAL_OK) {
-        ldr_val = HAL_ADC_GetValue(&hadc1);
+        rx.ldr_val = HAL_ADC_GetValue(&hadc1);
         uint32_t now = HAL_GetTick();
 
         // LIGHT IS ON
-        if (ldr_val > threshold) 
+        if (rx.ldr_val > threshold) 
         {
-            if (!light_is_on) 
+            if (!rx.is_light_on) 
             { 
-                pulse_start = now; // mark the start of a pulse
-                light_is_on = true;
+                rx.pulse_start = now; // mark the start of a pulse
+                rx.is_light_on = true;
             }
             __HAL_TIM_SET_COMPARE(LED2_PORT, LED2_PIN, 1000); // threshold Feedback
             HAL_GPIO_WritePin(BUZZER_PORT, BUZZER_PIN, GPIO_PIN_SET);
             HAL_GPIO_WritePin(LED3_PORT, LED3_PIN, GPIO_PIN_SET);
-            gap_start = now; // reset the "Gap" timer because light is present
+            rx.gap_start = now; // reset the "Gap" timer because light is present
         } 
         // LIGHT IS OFF
         else 
         { 
-            if (light_is_on) 
+            if (rx.is_light_on) 
             { 
-                uint32_t duration = now - pulse_start;
+                uint32_t duration = now - rx.pulse_start;
 
-                if (duration > 30 && duration < (unit_duration * 2)) 
-                temp_pattern[pattern_idx++] = '.';
-                else if (duration >= (unit_duration * 2)) 
-                temp_pattern[pattern_idx++] = '-';
+                if (duration > 30 && duration < (rx.unit_duration * 2)) 
+                rx.temp_pattern[rx.pattern_idx++] = '.';
+                else if (duration >= (rx.unit_duration * 2)) 
+                rx.temp_pattern[rx.pattern_idx++] = '-';
                 
-                temp_pattern[pattern_idx] = '\0'; // keep it a valid string
-                light_is_on = false;
-                gap_start = now; // start timing the silence
+                rx.temp_pattern[rx.pattern_idx] = '\0'; // keep it a valid string
+                rx.is_light_on = false;
+                rx.gap_start = now; // start timing the silence
             }
             __HAL_TIM_SET_COMPARE(LED2_PORT, LED2_PIN, current_pwm_level);
             HAL_GPIO_WritePin(BUZZER_PORT, BUZZER_PIN, GPIO_PIN_RESET);
             HAL_GPIO_WritePin(LED3_PORT, LED3_PIN, GPIO_PIN_RESET);
 
             // GAP DETECTION (end of a letter)
-            if (pattern_idx > 0 && (now - gap_start > (unit_duration * 3))) 
+            if (rx.pattern_idx > 0 && (now - rx.gap_start > (rx.unit_duration * 3))) 
             {
                 for (int i = 0; i < 26; i++) // loop through all alphabets (eng)
                 {
-                    if (strcmp(temp_pattern, morse_lookup[i]) == 0) { // 0 means "equal"
+                    if (strcmp(rx.temp_pattern, rx_morse_map[i]) == 0) { // 0 means "equal"
 
-                        found = 'A' + i;
+                        rx.found_char = 'A' + i;
   
-                        if (receive_idx < (int)(sizeof(receive_buffer) - 1))
-                        { // basically, receive_idx not exceeding 31
-                          receive_buffer[receive_idx++] = found; // post-increment
-                          receive_buffer[receive_idx] = '\0'; // after being incremented, make it stay string by making it null
+                        if (rx.index < (MAX_BUFFER - 1))
+                        { // deny stack overflow
+                          rx.buffer[rx.index++] = rx.found_char; // post-increment
+                          rx.buffer[rx.index] = '\0'; // after being incremented, make it stay string by making it null
                         }
                         break;
                     }
                 }
-                pattern_idx = 0; // clear for next letter
-                temp_pattern[0] = '\0';
+                rx.pattern_idx = 0; // clear for next letter
+                rx.temp_pattern[0] = '\0';
             }
             // WORD GAP DETECTION
-            if (now - gap_start > (unit_duration * 7)) 
+            if (now - rx.gap_start > (rx.unit_duration * 7)) 
             {
-              if (receive_idx > 0 && 
-                  receive_buffer[receive_idx - 1] != ' ' && // if the previous slot is not already a space  
-                  receive_idx < (MAX_BUFFER - 1))  // if not buffer overflow
+              if (rx.index > 0 && 
+                  rx.buffer[rx.index - 1] != ' ' && // if the previous slot is not already a space  
+                  rx.index < (MAX_BUFFER - 1))  // if not buffer overflow
               {
-                  receive_buffer[receive_idx++] = ' ';
-                  receive_buffer[receive_idx] = '\0';
+                  rx.buffer[rx.index++] = ' ';
+                  rx.buffer[rx.index] = '\0';
               }
             }
         }
@@ -850,15 +702,15 @@ void reset_and_tune_handler()
   bool is_pressed = (HAL_GPIO_ReadPin(ENC_SW_PORT, ENC_SW_PIN) == GPIO_PIN_RESET);
   
   // button just pushed down
-  if (is_pressed && !button_was_pressed) 
+  if (is_pressed && !rx.button_was_pressed) 
   {
-    press_start_time = HAL_GetTick();
-    button_was_pressed = true;
+    rx.press_start_time = HAL_GetTick();
+    rx.button_was_pressed = true;
   }
   // button just released (happening while holding)
-  else if (!is_pressed && button_was_pressed)
+  else if (!is_pressed && rx.button_was_pressed)
   {
-    uint32_t duration = HAL_GetTick() - press_start_time;
+    uint32_t duration = HAL_GetTick() - rx.press_start_time;
 
     // reset buffer
     if (duration >= 1000 && duration < 3000) 
@@ -873,23 +725,22 @@ void reset_and_tune_handler()
     {
       unit_duration_tuner();
     }
-
-    button_was_pressed = false;
-    press_start_time = 0;
+    rx.button_was_pressed = false;
+    rx.press_start_time = 0;
   }
 }
 
 void reset_receive_buffer()
 {
-  receive_idx = 0;
-  receive_buffer[0] = '\0';
+  rx.index = 0;
+  rx.buffer[0] = '\0';
   // put status feedback here
 }
 
 void unit_duration_tuner() 
 {
-    preset_idx = (preset_idx + 1) % total_presets;
-    unit_duration = unit_presets[preset_idx];
+    rx.preset_idx = (rx.preset_idx + 1) % TOTAL_PRESETS;
+    rx.unit_duration = unit_presets[rx.preset_idx];
     // put status feedback here
 }
 
@@ -952,61 +803,61 @@ void handle_morse_input(uint32_t timer, char letter)
   // ADD & CONFIRM SEND
   if (timer < 500) 
     {
-      if (ready_to_send_flag) 
+      if (tx.ready_to_send) 
       {
-        confirm_send_flag = true;
-        ready_to_reset_flag = true;
+        tx.confirm_send = true;
+        tx.ready_to_reset = true;
       } 
-      else if (select_idx < (int)(sizeof(select_buffer) - 1)) 
+      else if (tx.index < (int)(sizeof(tx.buffer) - 1)) 
       {
-        select_buffer[select_idx++] = letter;
-        select_buffer[select_idx] = '\0';
+        tx.buffer[tx.index++] = letter;
+        tx.buffer[tx.index] = '\0';
       }
     } 
     // DELETE
     else if (timer < 1500) 
     {
-      if (select_idx > 0) 
+      if (tx.index > 0) 
       {
-        select_idx--;
-        select_buffer[select_idx] = '\0';
+        tx.index--;
+        tx.buffer[tx.index] = '\0';
       }
     } 
     // CODE SEND
     else 
     {
-      ready_to_send_flag = true;
+      tx.ready_to_send = true;
     }
 }
 
 void reset_after_commit()
 {
-  if (ready_to_send_flag && ready_to_reset_flag && !confirm_send_flag) 
+  if (tx.ready_to_send && tx.ready_to_reset && !tx.confirm_send) 
   {
     HAL_GPIO_WritePin(LED1_PORT, LED1_PIN, GPIO_PIN_SET);
     HAL_Delay(100);
     HAL_GPIO_WritePin(LED1_PORT, LED1_PIN, GPIO_PIN_RESET);
 
     // resetting
-    ready_to_send_flag = false;
-    ready_to_reset_flag = false;
-    select_idx = 0;
-    select_buffer[0] = '\0';
+    tx.ready_to_send = false;
+    tx.ready_to_reset = false;
+    tx.index = 0;
+    tx.buffer[0] = '\0';
   }
 }
 
 void morse_commit()
 {
-  if (confirm_send_flag && !morse_running && select_buffer[0] != '\0') 
+  if (tx.confirm_send && !tx.is_running && tx.buffer[0] != '\0') 
   {
-    msg_index = 0;
-    if (lookup_and_load_pattern(select_buffer[msg_index])) 
+    tx.msg_ptr = 0;
+    if (lookup_and_load_pattern(tx.buffer[tx.msg_ptr])) 
     {
-      morse_running = true;
-      step_counter = 0; // make sure we start from beginning
+      tx.is_running = true;
+      tx.step = 0; // make sure we start from beginning
     }
     //  consume send flag so it doesn't retrigger repeatedly
-    confirm_send_flag = false;
+    tx.confirm_send = false;
   }
 }
 
@@ -1021,8 +872,8 @@ bool lookup_and_load_pattern(char character)
     if (morse_lookup_table[i].character == lookup_char)
     {
       // pointer to the matching PATTERN DATA (eg., pattern_a)
-      current_pattern_ptr = morse_lookup_table[i].pattern_data; // Current Pattern
-      current_pattern_length = morse_lookup_table[i].length;    // Current Pattern Length
+      tx.pattern_ptr = morse_lookup_table[i].pattern_data; // Current Pattern
+      tx.pattern_length = morse_lookup_table[i].length;    // Current Pattern Length
 
       return true;
     }
@@ -1035,15 +886,15 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
   // if we use pointer *htim to access the chosen htim's Instance and it's not TIM2, stop the function.
   if (htim->Instance != TIM2) return;
-  if (current_mode != MODE_SELECT) return; // do not run in other modes
+  if (sys.current_mode != MODE_SELECT) return; // do not run in other modes
 
   // OUTPUT LOGIC, runs every tick if the flag is set
-  if (morse_running == true)
+  if (tx.is_running == true)
   {
     // set the next ARR (counter) to reach only the required MORSE CODE unit
-    __HAL_TIM_SET_AUTORELOAD(&htim2, current_pattern_ptr[step_counter] - 1);
+    __HAL_TIM_SET_AUTORELOAD(&htim2, tx.pattern_ptr[tx.step] - 1);
 
-    if (select_buffer[msg_index] == ' ') 
+    if (tx.buffer[tx.msg_ptr] == ' ') 
     {
       HAL_GPIO_WritePin(BUZZER_PORT, BUZZER_PIN, GPIO_PIN_RESET);
       HAL_GPIO_WritePin(LED3_PORT, LED3_PIN, GPIO_PIN_RESET);
@@ -1051,7 +902,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     else 
     {
       // MORSE CODE is an alternating sequence of sound and silence (ex: sound, silence, sound)
-      if (step_counter % 2 == 0) // checks if the current position is either EVEN or ODD
+      if (tx.step % 2 == 0) // checks if the current position is either EVEN or ODD
       {
         HAL_GPIO_WritePin(BUZZER_PORT, BUZZER_PIN, GPIO_PIN_SET); // if EVEN
         HAL_GPIO_WritePin(LED3_PORT, LED3_PIN, GPIO_PIN_SET); // if EVEN
@@ -1064,33 +915,34 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     }
     
     // moving on to the next piece of MORSE CODE
-    step_counter++;
+    tx.step++;
 
     // checks for character end, if its ended, forward to the next
-    if (step_counter >= current_pattern_length)
+    if (tx.step >= tx.pattern_length)
     {
-      msg_index++; // advance to the next character
+      tx.msg_ptr++; // advance to the next character
 
       // if the character is null, terminate it (aka. stopping)
-      if (select_buffer[msg_index] == '\0')
+      if (tx.buffer[tx.msg_ptr] == '\0')
       {
-        morse_running = false;
+        tx.is_running = false;
         HAL_GPIO_WritePin(BUZZER_PORT, BUZZER_PIN, GPIO_PIN_RESET);
         HAL_GPIO_WritePin(LED3_PORT, LED3_PIN, GPIO_PIN_RESET);
-        msg_index = 0; // set back to default
+        tx.msg_ptr = 0; // set back to default
         return;
       }
 
       // loads next character
-      if (lookup_and_load_pattern(select_buffer[msg_index]))
+      if (lookup_and_load_pattern(tx.buffer[tx.msg_ptr]))
       {
-        step_counter = 0;
+        tx.step = 0;
       }
       else
       {
-        current_pattern_ptr = pattern_space;
-        current_pattern_length = 1;
-        step_counter = 0;
+        // tx.pattern_ptr = pattern_space;
+        // tx.pattern_length = 1;
+        lookup_and_load_pattern(' ');
+        tx.step = 0;
       }
     }
   }
