@@ -1,1 +1,21 @@
-.pio
+# platform io
+.pio/
+.vscode/
+*.orig
+
+# stm32 & cubemx
+.mxproject
+STM32F103XX_FLASH.ld
+startup_stm32f103xb.s
+
+# build outputs
+*.o
+*.elf
+*.bin
+*.hex
+*.map
+*.lst
+
+# OS garbage
+Thumbs.db
+.DS_Store
