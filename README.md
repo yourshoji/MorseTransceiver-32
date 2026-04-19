@@ -6,9 +6,6 @@ A HAL-based embedded C project (No RTOS) that converts an STM32 microcontroller 
   <img src="https://github.com/user-attachments/assets/bfe344a3-8355-466d-ac3b-50dcfe67205c" alt="BOARD" height="500" width="750">
 </p>
 
-## Overview
-This system operates entirely on a state-driven, data-oriented architecture (Anti-OOP). It handles real-time optical signal processing, non-blocking UI rendering, and precise timer-based transmission logic without RTOS overhead.
-
 ## Hardware Stack
 * **MCU:** STM32F1 Series (STM32F103/STM32F1xx)
 * **Display:** 0.96" SSD1306 OLED (I2C)
