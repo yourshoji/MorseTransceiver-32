@@ -38,4 +38,7 @@ A HAL-based embedded C project (No RTOS) that converts an STM32 microcontroller 
   <img src="https://github.com/user-attachments/assets/e3f9c06e-4e49-4d10-b271-ebaf0b7c9de9" alt="MANUAL" height="300" width="49%">
 </p>
 
+<p align="center">
+<img src="https://github.com/user-attachments/assets/e2db9e68-d184-465c-a4bc-ac89b4183816" alt="CIRCUIT DIAGRAM" height="1000" width=100%/>
+</p>
 ### [ ! ] System Showcase, Prototype, and PCB Design are coming soon.
