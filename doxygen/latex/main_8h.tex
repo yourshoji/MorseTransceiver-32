@@ -1,0 +1,235 @@
+\doxysection{Core/\+\+Inc/\+main.h File Reference}
+\hypertarget{main_8h}{}\label{main_8h}\index{Core/Inc/main.h@{Core/Inc/main.h}}
+
+
+:\+ Header for \doxylink{main_8c}{main.\+c} file. This file contains the common defines of the application.  
+
+
+{\ttfamily \+\#include "{}stm32f1xx\+\_\+hal.\+h"{}}\newline
+{\ttfamily \+\#include $<$stdbool.\+h$>$}\newline
+{\ttfamily \+\#include $<$stdint.\+h$>$}\newline
+\doxysubsubsection*{Data Structures}
+\begin{DoxyCompactItemize}
+\item 
+struct \doxymbox{\hyperlink{struct_system_state__t}{System\+State\+\_\+t}}
+\begin{DoxyCompactList}\small\item\em Tracks the current system mode and physical switch state. \end{DoxyCompactList}\item 
+struct \doxymbox{\hyperlink{struct_transmit_state__t}{Transmit\+State\+\_\+t}}
+\begin{DoxyCompactList}\small\item\em Holds all variables needed for the text sending process. \end{DoxyCompactList}\item 
+struct \doxymbox{\hyperlink{struct_receive_state__t}{Receive\+State\+\_\+t}}
+\begin{DoxyCompactList}\small\item\em Holds all variables needed to receive and read light pulses. \end{DoxyCompactList}\item 
+struct \doxymbox{\hyperlink{struct_morse_mapping__t}{Morse\+Mapping\+\_\+t}}
+\begin{DoxyCompactList}\small\item\em Links an alphabet letter to its Morse code timing pattern. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsubsection*{Macros}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{main_8h_a1d5dab30b404fab91608086105afc78c}\label{main_8h_a1d5dab30b404fab91608086105afc78c} 
+\+\#define {\bfseries MAX\+\_\+\+BUFFER}~128
+\begin{DoxyCompactList}\small\item\em System limits and configuration sizes. \end{DoxyCompactList}\item 
+\Hypertarget{main_8h_a416e93afc34bd1b0660c1c696392ab96}\label{main_8h_a416e93afc34bd1b0660c1c696392ab96} 
+\+\#define {\bfseries TOTAL\+\_\+\+PRESETS}~3
+\item 
+\Hypertarget{main_8h_a4f8af5b12a3370a710e09738aec0bf0b}\label{main_8h_a4f8af5b12a3370a710e09738aec0bf0b} 
+\+\#define {\bfseries DOT\+\_\+\+PORT}~GPIOB
+\item 
+\Hypertarget{main_8h_a0101aa3e5dcb00e86ef08075c9eabd19}\label{main_8h_a0101aa3e5dcb00e86ef08075c9eabd19} 
+\+\#define {\bfseries DOT\+\_\+\+PIN}~GPIO\+\_\+\+PIN\+\_\+5
+\item 
+\Hypertarget{main_8h_a2c03071f7bf9c75989bde81a02a8d077}\label{main_8h_a2c03071f7bf9c75989bde81a02a8d077} 
+\+\#define {\bfseries DASH\+\_\+\+PORT}~GPIOB
+\item 
+\Hypertarget{main_8h_a27f38fb04340a63c004cd6959734f9d3}\label{main_8h_a27f38fb04340a63c004cd6959734f9d3} 
+\+\#define {\bfseries DASH\+\_\+\+PIN}~GPIO\+\_\+\+PIN\+\_\+10
+\item 
+\Hypertarget{main_8h_abf0d28f731e836936a87086ea8b798da}\label{main_8h_abf0d28f731e836936a87086ea8b798da} 
+\+\#define {\bfseries BUZZER\+\_\+\+PORT}~GPIOB
+\item 
+\Hypertarget{main_8h_ab61d0981ed42df9e18211b273d22cfcd}\label{main_8h_ab61d0981ed42df9e18211b273d22cfcd} 
+\+\#define {\bfseries BUZZER\+\_\+\+PIN}~GPIO\+\_\+\+PIN\+\_\+11
+\item 
+\Hypertarget{main_8h_a03c023251c10bf985464586647173e90}\label{main_8h_a03c023251c10bf985464586647173e90} 
+\+\#define {\bfseries MODE\+\_\+\+SW\+\_\+\+PORT}~GPIOA
+\item 
+\Hypertarget{main_8h_a705d7eb0ff3b6d77601830cdfd4c3f04}\label{main_8h_a705d7eb0ff3b6d77601830cdfd4c3f04} 
+\+\#define {\bfseries MODE\+\_\+\+SW\+\_\+\+PIN}~GPIO\+\_\+\+PIN\+\_\+2
+\item 
+\Hypertarget{main_8h_a7416dfae55fe1727ba03854e0bfc56e9}\label{main_8h_a7416dfae55fe1727ba03854e0bfc56e9} 
+\+\#define {\bfseries ENC\+\_\+\+SW\+\_\+\+PORT}~GPIOB
+\item 
+\Hypertarget{main_8h_a1d0d3c099399f11227865f5c0cc2345e}\label{main_8h_a1d0d3c099399f11227865f5c0cc2345e} 
+\+\#define {\bfseries ENC\+\_\+\+SW\+\_\+\+PIN}~GPIO\+\_\+\+PIN\+\_\+0
+\item 
+\Hypertarget{main_8h_a1c9d04655364826e039b03997bcfe19c}\label{main_8h_a1c9d04655364826e039b03997bcfe19c} 
+\+\#define {\bfseries LED1\+\_\+\+PORT}~GPIOA
+\item 
+\Hypertarget{main_8h_a318aa17e5d40e2132d2c7f6269ce7f51}\label{main_8h_a318aa17e5d40e2132d2c7f6269ce7f51} 
+\+\#define {\bfseries LED1\+\_\+\+PIN}~GPIO\+\_\+\+PIN\+\_\+5
+\item 
+\Hypertarget{main_8h_a3fbb138c249c6c047524c7055dd5f1b7}\label{main_8h_a3fbb138c249c6c047524c7055dd5f1b7} 
+\+\#define {\bfseries LED2\+\_\+\+PORT}~(\&htim4)
+\item 
+\Hypertarget{main_8h_af6f84078113b55354d20585131b386f7}\label{main_8h_af6f84078113b55354d20585131b386f7} 
+\+\#define {\bfseries LED2\+\_\+\+PIN}~TIM\+\_\+\+CHANNEL\+\_\+1
+\item 
+\Hypertarget{main_8h_a522f0841ee948584396ab0bc03f5a731}\label{main_8h_a522f0841ee948584396ab0bc03f5a731} 
+\+\#define {\bfseries LED3\+\_\+\+PORT}~GPIOB
+\item 
+\Hypertarget{main_8h_a4cb3ff938bcabb01494ce529ae55a542}\label{main_8h_a4cb3ff938bcabb01494ce529ae55a542} 
+\+\#define {\bfseries LED3\+\_\+\+PIN}~GPIO\+\_\+\+PIN\+\_\+12
+\item 
+\Hypertarget{main_8h_ad204f313d36e30eaea44e8b601ceb67d}\label{main_8h_ad204f313d36e30eaea44e8b601ceb67d} 
+\+\#define {\bfseries TIME\+\_\+\+DOT}~1300
+\begin{DoxyCompactList}\small\item\em Morse code timing constants measured in timer ticks (1 tick = 0.\+1 ms). \end{DoxyCompactList}\item 
+\Hypertarget{main_8h_aede136be7a49fc94bcd2a0cd1a367fda}\label{main_8h_aede136be7a49fc94bcd2a0cd1a367fda} 
+\+\#define {\bfseries TIME\+\_\+\+DASH}~3900
+\item 
+\Hypertarget{main_8h_a55a414945a5a572174538460886d6488}\label{main_8h_a55a414945a5a572174538460886d6488} 
+\+\#define {\bfseries GAP\+\_\+\+SYM}~1300
+\item 
+\Hypertarget{main_8h_a9b0b03071b45f2c55da0068d2c7f825b}\label{main_8h_a9b0b03071b45f2c55da0068d2c7f825b} 
+\+\#define {\bfseries GAP\+\_\+\+CHAR}~3900
+\item 
+\Hypertarget{main_8h_ac0cb72d134059ec98e610a7a16951ded}\label{main_8h_ac0cb72d134059ec98e610a7a16951ded} 
+\+\#define {\bfseries GAP\+\_\+\+WORD}~9100
+\item 
+\Hypertarget{main_8h_a83365e0d5f9410632b4df86233789a2d}\label{main_8h_a83365e0d5f9410632b4df86233789a2d} 
+\+\#define {\bfseries LDR\+\_\+\+Pin}~GPIO\+\_\+\+PIN\+\_\+1
+\item 
+\Hypertarget{main_8h_a9319913ad8bfefbfb8e79c61a8202569}\label{main_8h_a9319913ad8bfefbfb8e79c61a8202569} 
+\+\#define {\bfseries LDR\+\_\+\+GPIO\+\_\+\+Port}~GPIOA
+\item 
+\Hypertarget{main_8h_a7ab84f1a95fb387a4766a214b2373eb7}\label{main_8h_a7ab84f1a95fb387a4766a214b2373eb7} 
+\+\#define {\bfseries MODE\+\_\+\+SW\+\_\+\+Pin}~GPIO\+\_\+\+PIN\+\_\+2
+\item 
+\Hypertarget{main_8h_a027fc2800d1e902d3d8aec2682360768}\label{main_8h_a027fc2800d1e902d3d8aec2682360768} 
+\+\#define {\bfseries MODE\+\_\+\+SW\+\_\+\+GPIO\+\_\+\+Port}~GPIOA
+\item 
+\Hypertarget{main_8h_a6a4ce89de353481c15b6f548e6ede653}\label{main_8h_a6a4ce89de353481c15b6f548e6ede653} 
+\+\#define {\bfseries MORSE\+\_\+\+CAL\+\_\+\+Pin}~GPIO\+\_\+\+PIN\+\_\+3
+\item 
+\Hypertarget{main_8h_a929e9406727db089b660030be8bb3a1d}\label{main_8h_a929e9406727db089b660030be8bb3a1d} 
+\+\#define {\bfseries MORSE\+\_\+\+CAL\+\_\+\+GPIO\+\_\+\+Port}~GPIOA
+\item 
+\Hypertarget{main_8h_ac969c4fccd009dd70b69992d92cbe81a}\label{main_8h_ac969c4fccd009dd70b69992d92cbe81a} 
+\+\#define {\bfseries LED\+\_\+\+Pin}~GPIO\+\_\+\+PIN\+\_\+5
+\item 
+\Hypertarget{main_8h_a3cf393d21586a4097159246e8aca13a2}\label{main_8h_a3cf393d21586a4097159246e8aca13a2} 
+\+\#define {\bfseries LED\+\_\+\+GPIO\+\_\+\+Port}~GPIOA
+\item 
+\Hypertarget{main_8h_a3f6e66aa71229f08c6fdf05d47f42e8f}\label{main_8h_a3f6e66aa71229f08c6fdf05d47f42e8f} 
+\+\#define {\bfseries ENC\+\_\+\+A\+\_\+\+Pin}~GPIO\+\_\+\+PIN\+\_\+6
+\item 
+\Hypertarget{main_8h_a073b848228680f066a9df84255f904fc}\label{main_8h_a073b848228680f066a9df84255f904fc} 
+\+\#define {\bfseries ENC\+\_\+\+A\+\_\+\+GPIO\+\_\+\+Port}~GPIOA
+\item 
+\Hypertarget{main_8h_a06a994f41386650fb1278089ce5af3c3}\label{main_8h_a06a994f41386650fb1278089ce5af3c3} 
+\+\#define {\bfseries ENC\+\_\+\+B\+\_\+\+Pin}~GPIO\+\_\+\+PIN\+\_\+7
+\item 
+\Hypertarget{main_8h_a77094db942cfdaf0ec482131d35691ec}\label{main_8h_a77094db942cfdaf0ec482131d35691ec} 
+\+\#define {\bfseries ENC\+\_\+\+B\+\_\+\+GPIO\+\_\+\+Port}~GPIOA
+\item 
+\Hypertarget{main_8h_a426f1c431de4d61afe9f954f7161fb56}\label{main_8h_a426f1c431de4d61afe9f954f7161fb56} 
+\+\#define {\bfseries ENC\+\_\+\+SW\+\_\+\+Pin}~GPIO\+\_\+\+PIN\+\_\+0
+\item 
+\Hypertarget{main_8h_ad56f767549489a3866869b0953aeda68}\label{main_8h_ad56f767549489a3866869b0953aeda68} 
+\+\#define {\bfseries ENC\+\_\+\+SW\+\_\+\+GPIO\+\_\+\+Port}~GPIOB
+\item 
+\Hypertarget{main_8h_aca068c98c236158f707da37ffd4db564}\label{main_8h_aca068c98c236158f707da37ffd4db564} 
+\+\#define {\bfseries DASH\+\_\+\+SW\+\_\+\+Pin}~GPIO\+\_\+\+PIN\+\_\+10
+\item 
+\Hypertarget{main_8h_ab01b730d0465b1ee6910e8b4e1ac4c36}\label{main_8h_ab01b730d0465b1ee6910e8b4e1ac4c36} 
+\+\#define {\bfseries DASH\+\_\+\+SW\+\_\+\+GPIO\+\_\+\+Port}~GPIOB
+\item 
+\Hypertarget{main_8h_ac0f050faf586d6fb652d66c2795cf6ba}\label{main_8h_ac0f050faf586d6fb652d66c2795cf6ba} 
+\+\#define {\bfseries BUZZER\+\_\+\+Pin}~GPIO\+\_\+\+PIN\+\_\+11
+\item 
+\Hypertarget{main_8h_a9fba9f1605fb71c4ef6dc1dfb09207d8}\label{main_8h_a9fba9f1605fb71c4ef6dc1dfb09207d8} 
+\+\#define {\bfseries BUZZER\+\_\+\+GPIO\+\_\+\+Port}~GPIOB
+\item 
+\Hypertarget{main_8h_ac25c6bffae47f375dcd8863808566e9c}\label{main_8h_ac25c6bffae47f375dcd8863808566e9c} 
+\+\#define {\bfseries LEDB12\+\_\+\+Pin}~GPIO\+\_\+\+PIN\+\_\+12
+\item 
+\Hypertarget{main_8h_a0c60ba3ae3fee18488604019bbd40381}\label{main_8h_a0c60ba3ae3fee18488604019bbd40381} 
+\+\#define {\bfseries LEDB12\+\_\+\+GPIO\+\_\+\+Port}~GPIOB
+\item 
+\Hypertarget{main_8h_a3ffe16c46b197adc811c09fd6548959a}\label{main_8h_a3ffe16c46b197adc811c09fd6548959a} 
+\+\#define {\bfseries DOT\+\_\+\+SW\+\_\+\+Pin}~GPIO\+\_\+\+PIN\+\_\+5
+\item 
+\Hypertarget{main_8h_aaa3c89589a854d8bf41eebbaafb5a079}\label{main_8h_aaa3c89589a854d8bf41eebbaafb5a079} 
+\+\#define {\bfseries DOT\+\_\+\+SW\+\_\+\+GPIO\+\_\+\+Port}~GPIOB
+\item 
+\Hypertarget{main_8h_aa58e23be494f164f597d21ec4a4cf0b1}\label{main_8h_aa58e23be494f164f597d21ec4a4cf0b1} 
+\+\#define {\bfseries LEDB6\+\_\+\+Pin}~GPIO\+\_\+\+PIN\+\_\+6
+\item 
+\Hypertarget{main_8h_a1142ea4e5ea4f551cc50b858d5b7ff9f}\label{main_8h_a1142ea4e5ea4f551cc50b858d5b7ff9f} 
+\+\#define {\bfseries LEDB6\+\_\+\+GPIO\+\_\+\+Port}~GPIOB
+\item 
+\Hypertarget{main_8h_a1e704205e87b5ebf55bd1fa3bb2eac93}\label{main_8h_a1e704205e87b5ebf55bd1fa3bb2eac93} 
+\+\#define {\bfseries OLED\+\_\+\+SCL\+\_\+\+Pin}~GPIO\+\_\+\+PIN\+\_\+8
+\item 
+\Hypertarget{main_8h_a23e227a45d326618282581c4b804b2e8}\label{main_8h_a23e227a45d326618282581c4b804b2e8} 
+\+\#define {\bfseries OLED\+\_\+\+SCL\+\_\+\+GPIO\+\_\+\+Port}~GPIOB
+\item 
+\Hypertarget{main_8h_a55d31617a36033750792ecad66c1e06e}\label{main_8h_a55d31617a36033750792ecad66c1e06e} 
+\+\#define {\bfseries OLED\+\_\+\+SDA\+\_\+\+Pin}~GPIO\+\_\+\+PIN\+\_\+9
+\item 
+\Hypertarget{main_8h_ae2cf38f7cb846fdd8ce659f9b059b239}\label{main_8h_ae2cf38f7cb846fdd8ce659f9b059b239} 
+\+\#define {\bfseries OLED\+\_\+\+SDA\+\_\+\+GPIO\+\_\+\+Port}~GPIOB
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Enumerations}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{main_8h_af0cf79416c8902253fb78315a7159d98}\label{main_8h_af0cf79416c8902253fb78315a7159d98} 
+enum \doxymbox{\hyperlink{main_8h_af0cf79416c8902253fb78315a7159d98}{System\+Mode\+\_\+t}} \{ {\bfseries MODE\+\_\+\+IDLE} = 0
+, {\bfseries MODE\+\_\+\+SELECT}
+, {\bfseries MODE\+\_\+\+RECEIVE}
+, {\bfseries MODE\+\_\+\+MANUAL}
+ \}
+\begin{DoxyCompactList}\small\item\em Defines the four main operating modes of the system. \end{DoxyCompactList}\item 
+\Hypertarget{main_8h_a102fb84be4cdfdeda8e587052345fc45}\label{main_8h_a102fb84be4cdfdeda8e587052345fc45} 
+enum \doxymbox{\hyperlink{main_8h_a102fb84be4cdfdeda8e587052345fc45}{Sub\+State\+\_\+t}} \{ {\bfseries IDLE}
+, {\bfseries DEBOUNCE}
+, {\bfseries SENDING}
+, {\bfseries GAP}
+ \}
+\begin{DoxyCompactList}\small\item\em Defines the steps for sending a single Morse code pulse. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{main_8h_a1730ffe1e560465665eb47d9264826f9}\label{main_8h_a1730ffe1e560465665eb47d9264826f9} 
+void {\bfseries Error\+\_\+\+Handler} (void)
+\begin{DoxyCompactList}\small\item\em Freezes the program if a major error occurs. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsubsection*{Variables}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{main_8h_a2527444bec351073592e964617fcf54d}\label{main_8h_a2527444bec351073592e964617fcf54d} 
+\doxymbox{\hyperlink{struct_system_state__t}{System\+State\+\_\+t}} {\bfseries sys}
+\begin{DoxyCompactList}\small\item\em Tracks the current system mode and the mode switch state. \end{DoxyCompactList}\item 
+\Hypertarget{main_8h_a4ed8933ec9dcdfbe97cb2ed15c349e12}\label{main_8h_a4ed8933ec9dcdfbe97cb2ed15c349e12} 
+\doxymbox{\hyperlink{struct_receive_state__t}{Receive\+State\+\_\+t}} {\bfseries rx}
+\begin{DoxyCompactList}\small\item\em Stores ADC values, pulse timings, and the decoded Morse text. \end{DoxyCompactList}\item 
+\Hypertarget{main_8h_a2e7f20a7676b3cd753a70a43355e05a0}\label{main_8h_a2e7f20a7676b3cd753a70a43355e05a0} 
+\doxymbox{\hyperlink{struct_transmit_state__t}{Transmit\+State\+\_\+t}} {\bfseries tx}
+\begin{DoxyCompactList}\small\item\em Stores the text to send, encoder positions, and sending status. \end{DoxyCompactList}\item 
+\Hypertarget{main_8h_a8dcc7adefebd37fe9ccc697dd008b382}\label{main_8h_a8dcc7adefebd37fe9ccc697dd008b382} 
+const char \texorpdfstring{$\ast$}{*} {\bfseries rx\+\_\+morse\+\_\+map} \+[$\,$]\+
+\begin{DoxyCompactList}\small\item\em Maps alphabet index (0-\/25) to Morse code strings for the receiver. \end{DoxyCompactList}\item 
+\Hypertarget{main_8h_afc82f84dfc38804d9f976028d80a1a5c}\label{main_8h_afc82f84dfc38804d9f976028d80a1a5c} 
+const \doxymbox{\hyperlink{struct_morse_mapping__t}{Morse\+Mapping\+\_\+t}} {\bfseries morse\+\_\+lookup\+\_\+table} \+[$\,$]\+
+\begin{DoxyCompactList}\small\item\em Links ASCII characters to their specific timing patterns and array lengths. \end{DoxyCompactList}\item 
+\Hypertarget{main_8h_a6a9244c3adeb8bcc84e33b1fd0621969}\label{main_8h_a6a9244c3adeb8bcc84e33b1fd0621969} 
+const size\+\_\+t {\bfseries morse\+\_\+lookup\+\_\+length}
+\begin{DoxyCompactList}\small\item\em The total number of items inside the Morse lookup table. \end{DoxyCompactList}\item 
+\Hypertarget{main_8h_a7068b24e358968e8b33d969cd45fcff4}\label{main_8h_a7068b24e358968e8b33d969cd45fcff4} 
+const uint16\+\_\+t {\bfseries unit\+\_\+presets} \+[TOTAL\+\_\+\+PRESETS]\+
+\begin{DoxyCompactList}\small\item\em Holds dot lengths in milliseconds that can change while the program runs. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+:\+ Header for \doxylink{main_8c}{main.\+c} file. This file contains the common defines of the application. 
+
+\begin{DoxyAttention}{Attention}
+
+\end{DoxyAttention}
+Copyright (c) 2025 STMicroelectronics. All rights reserved.
+
+This software is licensed under terms that can be found in the LICENSE file in the root directory of this software component. If no LICENSE file comes with this software, it is provided AS-\/\+IS. 
