@@ -1,6 +1,6 @@
 # MCT-32: STM32 Morse Code Transceiver
 
-A HAL-based embedded C project (No RTOS) that converts an STM32 microcontroller into a multi-mode Morse code transceiver.
+A HAL-based embedded C project that converts an STM32F103 MCU into a multimode Morse code transceiver.
 
 <p align="center">
   <img src="https://github.com/user-attachments/assets/bfe344a3-8355-466d-ac3b-50dcfe67205c" alt="BOARD" height="500" width="750">
