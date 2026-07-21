@@ -1,0 +1,411 @@
+\doxysection{Core/\+\+Src/\+main.c File Reference}
+\hypertarget{main_8c}{}\label{main_8c}\index{Core/Src/main.c@{Core/Src/main.c}}
+
+
+:\+ MCT-\/32 Morse Code Transceiver — Main program start and mode loop.  
+
+
+{\ttfamily \+\#include "{}main.\+h"{}}\newline
+{\ttfamily \+\#include "{}i2c.\+h"{}}\newline
+{\ttfamily \+\#include "{}ssd1306.\+h"{}}\newline
+{\ttfamily \+\#include "{}ssd1306\+\_\+fonts.\+h"{}}\newline
+{\ttfamily \+\#include "{}tim.\+h"{}}\newline
+{\ttfamily \+\#include $<$adc.\+h$>$}\newline
+{\ttfamily \+\#include $<$gpio.\+h$>$}\newline
+{\ttfamily \+\#include $<$ctype.\+h$>$}\newline
+{\ttfamily \+\#include $<$stdio.\+h$>$}\newline
+{\ttfamily \+\#include $<$string.\+h$>$}\newline
+\doxysubsubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{main_8c_a70af21c671abfcc773614a9a4f63d920}\label{main_8c_a70af21c671abfcc773614a9a4f63d920} 
+void {\bfseries System\+Clock\+\_\+\+Config} (void)
+\item 
+void \doxymbox{\hyperlink{main_8c_a2c2c11f51fdaf97ef772ec39e03f8f3e}{update\+\_\+buffer\+\_\+ui}} (uint8\+\_\+t idx, char \texorpdfstring{$\ast$}{*}buffer)
+\begin{DoxyCompactList}\small\item\em Updates the OLED screen only when the text length changes. \end{DoxyCompactList}\item 
+\Hypertarget{main_8c_a8086a009fd4b852b08487ff8e6684dad}\label{main_8c_a8086a009fd4b852b08487ff8e6684dad} 
+void {\bfseries idle\+\_\+ui} (void)
+\begin{DoxyCompactList}\small\item\em Shows how many minutes the system has been running. \end{DoxyCompactList}\item 
+\Hypertarget{main_8c_a4d065e23192d96c4c7090db18b8fca48}\label{main_8c_a4d065e23192d96c4c7090db18b8fca48} 
+void {\bfseries paddle\+\_\+feedback\+\_\+manual\+\_\+ui} (void)
+\begin{DoxyCompactList}\small\item\em Draws filled or empty boxes to show if paddles are pressed. \end{DoxyCompactList}\item 
+void \doxymbox{\hyperlink{main_8c_a16c77f12ee978fb5f1d608fa85a823d8}{unit\+\_\+duration\+\_\+receive\+\_\+ui}} (uint8\+\_\+t unit)
+\begin{DoxyCompactList}\small\item\em Shows the current dot speed on the screen. \end{DoxyCompactList}\item 
+void \doxymbox{\hyperlink{main_8c_a4927739a6d220b7d3cc27688cea64906}{idx\+\_\+roll\+\_\+receive\+\_\+ui}} (uint8\+\_\+t idx)
+\begin{DoxyCompactList}\small\item\em Shows the current light sensor limit on the screen. \end{DoxyCompactList}\item 
+void \doxymbox{\hyperlink{main_8c_a05f1afba8665598cf6581a3f68f780e7}{letter\+\_\+roll\+\_\+select\+\_\+ui}} (char letter)
+\begin{DoxyCompactList}\small\item\em Shows the letter currently picked by the user. \end{DoxyCompactList}\item 
+\Hypertarget{main_8c_a25008523fd7c83de7ed6d7e1251de84b}\label{main_8c_a25008523fd7c83de7ed6d7e1251de84b} 
+void {\bfseries play\+\_\+intro\+\_\+ui} (void)
+\begin{DoxyCompactList}\small\item\em Shows the startup screen and a loading bar. Blocks code while running. \end{DoxyCompactList}\item 
+void \doxymbox{\hyperlink{main_8c_a038e20100ca5db1fcdea2bf9f4b89e2e}{refresh\+\_\+n\+\_\+setup\+\_\+ui}} (\doxymbox{\hyperlink{main_8h_af0cf79416c8902253fb78315a7159d98}{System\+Mode\+\_\+t}} mode, char \texorpdfstring{$\ast$}{*}buffer)
+\begin{DoxyCompactList}\small\item\em Draws the basic screen layout for the current mode. \end{DoxyCompactList}\item 
+\Hypertarget{main_8c_af1be412d030f0bf46a8d96fda0958c10}\label{main_8c_af1be412d030f0bf46a8d96fda0958c10} 
+void {\bfseries handle\+\_\+manual\+\_\+mode} (void)
+\begin{DoxyCompactList}\small\item\em Checks the manual paddles and starts sending dots or dashes. \end{DoxyCompactList}\item 
+bool \doxymbox{\hyperlink{main_8c_af48828733ab46548e26699b38e3f3bb2}{handle\+\_\+transmit}} (uint16\+\_\+t pulse\+\_\+duration)
+\begin{DoxyCompactList}\small\item\em Sends Morse code pulses without freezing the program. \end{DoxyCompactList}\item 
+void \doxymbox{\hyperlink{main_8c_ade4a624fdd57ac4582e121ba6502b5aa}{handle\+\_\+ldr\+\_\+receive}} (uint32\+\_\+t threshold, uint32\+\_\+t current\+\_\+pwm\+\_\+level)
+\begin{DoxyCompactList}\small\item\em Reads the light sensor and changes light flashes into text. \end{DoxyCompactList}\item 
+\Hypertarget{main_8c_a468d64c71eb1e2c2971e663b5b40a83c}\label{main_8c_a468d64c71eb1e2c2971e663b5b40a83c} 
+void {\bfseries reset\+\_\+and\+\_\+tune\+\_\+handler} (void)
+\begin{DoxyCompactList}\small\item\em Checks how long the button is held to clear text or change speed. \end{DoxyCompactList}\item 
+\Hypertarget{main_8c_a23de41d402067ff3306979b543f21af4}\label{main_8c_a23de41d402067ff3306979b543f21af4} 
+void {\bfseries reset\+\_\+receive\+\_\+buffer} (void)
+\begin{DoxyCompactList}\small\item\em Empties the received text. \end{DoxyCompactList}\item 
+\Hypertarget{main_8c_aa86b3b359b59231fd71beb37150fc1db}\label{main_8c_aa86b3b359b59231fd71beb37150fc1db} 
+void {\bfseries unit\+\_\+duration\+\_\+tuner} (void)
+\begin{DoxyCompactList}\small\item\em Changes the dot speed to the next option, looping back to the start. \end{DoxyCompactList}\item 
+void \doxymbox{\hyperlink{main_8c_aad074bb0bea70348fce29faa2d773a2e}{handle\+\_\+letter\+\_\+selection}} (char input\+\_\+char)
+\begin{DoxyCompactList}\small\item\em Checks button presses to add, delete, or send text. \end{DoxyCompactList}\item 
+void \doxymbox{\hyperlink{main_8c_a7f5b876e4dc929696275b96572567370}{status\+\_\+feedback\+\_\+handler}} (uint32\+\_\+t timer)
+\begin{DoxyCompactList}\small\item\em Blinks a light to show how long the button has been held. \end{DoxyCompactList}\item 
+void \doxymbox{\hyperlink{main_8c_a437b25bcc4636c05773b8054a1dfccd8}{handle\+\_\+morse\+\_\+input}} (uint32\+\_\+t timer, char letter)
+\begin{DoxyCompactList}\small\item\em Uses the button press time to add, delete, or mark text to send. \end{DoxyCompactList}\item 
+\Hypertarget{main_8c_ab8dc6f5538376ecd60e8f7c5968209a7}\label{main_8c_ab8dc6f5538376ecd60e8f7c5968209a7} 
+void {\bfseries reset\+\_\+after\+\_\+commit} (void)
+\begin{DoxyCompactList}\small\item\em Clears the text if the user readies a message but cancels before sending. \end{DoxyCompactList}\item 
+\Hypertarget{main_8c_a8e402cee6ac2f4b3eb02c9ae7871ef8f}\label{main_8c_a8e402cee6ac2f4b3eb02c9ae7871ef8f} 
+void {\bfseries morse\+\_\+commit} (void)
+\begin{DoxyCompactList}\small\item\em Starts sending the message if the user confirmed it. \end{DoxyCompactList}\item 
+bool \doxymbox{\hyperlink{main_8c_adab45f76f7ca755e89333655619189ee}{lookup\+\_\+and\+\_\+load\+\_\+pattern}} (char character)
+\begin{DoxyCompactList}\small\item\em Finds a letter in the Morse dictionary and gets its pattern. \end{DoxyCompactList}\item 
+int \doxymbox{\hyperlink{main_8c_a840291bc02cba5474a4cb46a9b9566fe}{main}} (void)
+\begin{DoxyCompactList}\small\item\em Main program loop. \end{DoxyCompactList}\item 
+void \doxymbox{\hyperlink{main_8c_a8a3b0ad512a6e6c6157440b68d395eac}{HAL\+\_\+\+TIM\+\_\+\+Period\+Elapsed\+Callback}} (TIM\+\_\+\+Handle\+Type\+Def \texorpdfstring{$\ast$}{*}htim)
+\begin{DoxyCompactList}\small\item\em Moves the Morse sending sequence forward on every timer tick. \end{DoxyCompactList}\item 
+\Hypertarget{main_8c_a1730ffe1e560465665eb47d9264826f9}\label{main_8c_a1730ffe1e560465665eb47d9264826f9} 
+void {\bfseries Error\+\_\+\+Handler} (void)
+\begin{DoxyCompactList}\small\item\em Freezes the program if a major error occurs. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsubsection*{Variables}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{main_8c_aac3d2c59ee0e3bbae1b99529a154eb62}\label{main_8c_aac3d2c59ee0e3bbae1b99529a154eb62} 
+TIM\+\_\+\+Handle\+Type\+Def {\bfseries htim3}
+\item 
+\Hypertarget{main_8c_a85788cec5a97ee377e4ee2e74f026484}\label{main_8c_a85788cec5a97ee377e4ee2e74f026484} 
+TIM\+\_\+\+Handle\+Type\+Def {\bfseries htim4}
+\item 
+\Hypertarget{main_8c_a2c80fd5510e2990a59a5c90d745c716c}\label{main_8c_a2c80fd5510e2990a59a5c90d745c716c} 
+TIM\+\_\+\+Handle\+Type\+Def {\bfseries htim2}
+\item 
+\Hypertarget{main_8c_a2028b3d42011c35d719be9cb20265020}\label{main_8c_a2028b3d42011c35d719be9cb20265020} 
+const uint8\+\_\+t {\bfseries unit\+\_\+presets} \+[TOTAL\+\_\+\+PRESETS]\+ = \{130, 150, 200\}
+\begin{DoxyCompactList}\small\item\em Holds dot lengths in milliseconds that can change while the program runs. \end{DoxyCompactList}\item 
+\doxymbox{\hyperlink{struct_system_state__t}{System\+State\+\_\+t}} \doxymbox{\hyperlink{main_8c_a2527444bec351073592e964617fcf54d}{sys}}
+\begin{DoxyCompactList}\small\item\em Tracks the current system mode and the mode switch state. \end{DoxyCompactList}\item 
+\doxymbox{\hyperlink{struct_transmit_state__t}{Transmit\+State\+\_\+t}} \doxymbox{\hyperlink{main_8c_a2e7f20a7676b3cd753a70a43355e05a0}{tx}}
+\begin{DoxyCompactList}\small\item\em Stores the text to send, encoder positions, and sending status. \end{DoxyCompactList}\item 
+\doxymbox{\hyperlink{struct_receive_state__t}{Receive\+State\+\_\+t}} \doxymbox{\hyperlink{main_8c_a4ed8933ec9dcdfbe97cb2ed15c349e12}{rx}}
+\begin{DoxyCompactList}\small\item\em Stores ADC values, pulse timings, and the decoded Morse text. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+:\+ MCT-\/32 Morse Code Transceiver — Main program start and mode loop. 
+
+\begin{DoxyAttention}{Attention}
+
+\end{DoxyAttention}
+Copyright (c) 2025 STMicroelectronics. All rights reserved.
+
+This software is licensed under terms that can be found in the LICENSE file in the root directory of this software component. If no LICENSE file comes with this software, it is provided AS-\/\+IS. 
+
+\label{main_8c_doc-func-members}
+\Hypertarget{main_8c_doc-func-members}
+\doxysubsection{Function Documentation}
+\Hypertarget{main_8c_a8a3b0ad512a6e6c6157440b68d395eac}\index{main.c@{main.c}!HAL\_TIM\_PeriodElapsedCallback@{HAL\_TIM\_PeriodElapsedCallback}}
+\index{HAL\_TIM\_PeriodElapsedCallback@{HAL\_TIM\_PeriodElapsedCallback}!main.c@{main.c}}
+\doxysubsubsection{\texorpdfstring{HAL\_TIM\_PeriodElapsedCallback()}{HAL\_TIM\_PeriodElapsedCallback()}}
+{\footnotesize\ttfamily \label{main_8c_a8a3b0ad512a6e6c6157440b68d395eac} 
+void HAL\+\_\+\+TIM\+\_\+\+Period\+Elapsed\+Callback (\begin{DoxyParamCaption}\item[{TIM\+\_\+\+Handle\+Type\+Def \texorpdfstring{$\ast$}{*}}]{htim}{}\end{DoxyParamCaption})}
+
+
+
+Moves the Morse sending sequence forward on every timer tick. 
+
+WARNING:\+ The pattern pointer must not be empty if the system is running. The program will crash if it is.
+
+
+\begin{DoxyParams}{Parameters}
+{\em htim} & The timer causing the interrupt. \\
+\hline
+\end{DoxyParams}
+\Hypertarget{main_8c_ade4a624fdd57ac4582e121ba6502b5aa}\index{main.c@{main.c}!handle\_ldr\_receive@{handle\_ldr\_receive}}
+\index{handle\_ldr\_receive@{handle\_ldr\_receive}!main.c@{main.c}}
+\doxysubsubsection{\texorpdfstring{handle\_ldr\_receive()}{handle\_ldr\_receive()}}
+{\footnotesize\ttfamily \label{main_8c_ade4a624fdd57ac4582e121ba6502b5aa} 
+void handle\+\_\+ldr\+\_\+receive (\begin{DoxyParamCaption}\item[{uint32\+\_\+t}]{threshold}{, }\item[{uint32\+\_\+t}]{current\+\_\+pwm\+\_\+level}{}\end{DoxyParamCaption})}
+
+
+
+Reads the light sensor and changes light flashes into text. 
+
+NOTE:\+ Dots are shorter than 2 units. Dashes are longer. New letters start after 3 units of silence. New words after 7.
+
+
+\begin{DoxyParams}{Parameters}
+{\em threshold} & The sensor level that means the light is on. \\
+\hline
+{\em current\+\_\+pwm\+\_\+level} & Normal LED brightness when quiet. \\
+\hline
+\end{DoxyParams}
+\Hypertarget{main_8c_aad074bb0bea70348fce29faa2d773a2e}\index{main.c@{main.c}!handle\_letter\_selection@{handle\_letter\_selection}}
+\index{handle\_letter\_selection@{handle\_letter\_selection}!main.c@{main.c}}
+\doxysubsubsection{\texorpdfstring{handle\_letter\_selection()}{handle\_letter\_selection()}}
+{\footnotesize\ttfamily \label{main_8c_aad074bb0bea70348fce29faa2d773a2e} 
+void handle\+\_\+letter\+\_\+selection (\begin{DoxyParamCaption}\item[{char}]{input\+\_\+char}{}\end{DoxyParamCaption})}
+
+
+
+Checks button presses to add, delete, or send text. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em input\+\_\+char} & The letter shown on the screen. \\
+\hline
+\end{DoxyParams}
+\Hypertarget{main_8c_a437b25bcc4636c05773b8054a1dfccd8}\index{main.c@{main.c}!handle\_morse\_input@{handle\_morse\_input}}
+\index{handle\_morse\_input@{handle\_morse\_input}!main.c@{main.c}}
+\doxysubsubsection{\texorpdfstring{handle\_morse\_input()}{handle\_morse\_input()}}
+{\footnotesize\ttfamily \label{main_8c_a437b25bcc4636c05773b8054a1dfccd8} 
+void handle\+\_\+morse\+\_\+input (\begin{DoxyParamCaption}\item[{uint32\+\_\+t}]{timer}{, }\item[{char}]{letter}{}\end{DoxyParamCaption})}
+
+
+
+Uses the button press time to add, delete, or mark text to send. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em timer} & Total time the button was held. \\
+\hline
+{\em letter} & The letter to add if it was a quick press. \\
+\hline
+\end{DoxyParams}
+\Hypertarget{main_8c_af48828733ab46548e26699b38e3f3bb2}\index{main.c@{main.c}!handle\_transmit@{handle\_transmit}}
+\index{handle\_transmit@{handle\_transmit}!main.c@{main.c}}
+\doxysubsubsection{\texorpdfstring{handle\_transmit()}{handle\_transmit()}}
+{\footnotesize\ttfamily \label{main_8c_af48828733ab46548e26699b38e3f3bb2} 
+bool handle\+\_\+transmit (\begin{DoxyParamCaption}\item[{uint16\+\_\+t}]{pulse\+\_\+duration}{}\end{DoxyParamCaption})}
+
+
+
+Sends Morse code pulses without freezing the program. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em pulse\+\_\+duration} & Length of the pulse in milliseconds. 0 means just check status. \\
+\hline
+\end{DoxyParams}
+
+\begin{DoxyRetVals}{Return values}
+{\em true} & The sender is busy. \\
+\hline
+{\em false} & The sender is ready for a new pulse. \\
+\hline
+\end{DoxyRetVals}
+\Hypertarget{main_8c_a4927739a6d220b7d3cc27688cea64906}\index{main.c@{main.c}!idx\_roll\_receive\_ui@{idx\_roll\_receive\_ui}}
+\index{idx\_roll\_receive\_ui@{idx\_roll\_receive\_ui}!main.c@{main.c}}
+\doxysubsubsection{\texorpdfstring{idx\_roll\_receive\_ui()}{idx\_roll\_receive\_ui()}}
+{\footnotesize\ttfamily \label{main_8c_a4927739a6d220b7d3cc27688cea64906} 
+void idx\+\_\+roll\+\_\+receive\+\_\+ui (\begin{DoxyParamCaption}\item[{uint8\+\_\+t}]{idx}{}\end{DoxyParamCaption})}
+
+
+
+Shows the current light sensor limit on the screen. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em idx} & Sensor limit based on the encoder knob. \\
+\hline
+\end{DoxyParams}
+\Hypertarget{main_8c_a05f1afba8665598cf6581a3f68f780e7}\index{main.c@{main.c}!letter\_roll\_select\_ui@{letter\_roll\_select\_ui}}
+\index{letter\_roll\_select\_ui@{letter\_roll\_select\_ui}!main.c@{main.c}}
+\doxysubsubsection{\texorpdfstring{letter\_roll\_select\_ui()}{letter\_roll\_select\_ui()}}
+{\footnotesize\ttfamily \label{main_8c_a05f1afba8665598cf6581a3f68f780e7} 
+void letter\+\_\+roll\+\_\+select\+\_\+ui (\begin{DoxyParamCaption}\item[{char}]{letter}{}\end{DoxyParamCaption})}
+
+
+
+Shows the letter currently picked by the user. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em letter} & The letter chosen by the encoder knob. \\
+\hline
+\end{DoxyParams}
+\Hypertarget{main_8c_adab45f76f7ca755e89333655619189ee}\index{main.c@{main.c}!lookup\_and\_load\_pattern@{lookup\_and\_load\_pattern}}
+\index{lookup\_and\_load\_pattern@{lookup\_and\_load\_pattern}!main.c@{main.c}}
+\doxysubsubsection{\texorpdfstring{lookup\_and\_load\_pattern()}{lookup\_and\_load\_pattern()}}
+{\footnotesize\ttfamily \label{main_8c_adab45f76f7ca755e89333655619189ee} 
+bool lookup\+\_\+and\+\_\+load\+\_\+pattern (\begin{DoxyParamCaption}\item[{char}]{character}{}\end{DoxyParamCaption})}
+
+
+
+Finds a letter in the Morse dictionary and gets its pattern. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em character} & The letter to look up. \\
+\hline
+\end{DoxyParams}
+
+\begin{DoxyRetVals}{Return values}
+{\em true} & Found the letter. \\
+\hline
+{\em false} & Letter is not in the dictionary. \\
+\hline
+\end{DoxyRetVals}
+\Hypertarget{main_8c_a840291bc02cba5474a4cb46a9b9566fe}\index{main.c@{main.c}!main@{main}}
+\index{main@{main}!main.c@{main.c}}
+\doxysubsubsection{\texorpdfstring{main()}{main()}}
+{\footnotesize\ttfamily \label{main_8c_a840291bc02cba5474a4cb46a9b9566fe} 
+int main (\begin{DoxyParamCaption}\item[{void}]{}{}\end{DoxyParamCaption})}
+
+
+
+Main program loop. 
+
+
+\begin{DoxyRetVals}{Return values}
+{\em int} & Standard C return code. \\
+\hline
+\end{DoxyRetVals}
+\Hypertarget{main_8c_a038e20100ca5db1fcdea2bf9f4b89e2e}\index{main.c@{main.c}!refresh\_n\_setup\_ui@{refresh\_n\_setup\_ui}}
+\index{refresh\_n\_setup\_ui@{refresh\_n\_setup\_ui}!main.c@{main.c}}
+\doxysubsubsection{\texorpdfstring{refresh\_n\_setup\_ui()}{refresh\_n\_setup\_ui()}}
+{\footnotesize\ttfamily \label{main_8c_a038e20100ca5db1fcdea2bf9f4b89e2e} 
+void refresh\+\_\+n\+\_\+setup\+\_\+ui (\begin{DoxyParamCaption}\item[{\doxymbox{\hyperlink{main_8h_af0cf79416c8902253fb78315a7159d98}{System\+Mode\+\_\+t}}}]{mode}{, }\item[{char \texorpdfstring{$\ast$}{*}}]{buffer}{}\end{DoxyParamCaption})}
+
+
+
+Draws the basic screen layout for the current mode. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em mode} & The current system mode. \\
+\hline
+{\em buffer} & Text buffer used in modes that show words. \\
+\hline
+\end{DoxyParams}
+\Hypertarget{main_8c_a7f5b876e4dc929696275b96572567370}\index{main.c@{main.c}!status\_feedback\_handler@{status\_feedback\_handler}}
+\index{status\_feedback\_handler@{status\_feedback\_handler}!main.c@{main.c}}
+\doxysubsubsection{\texorpdfstring{status\_feedback\_handler()}{status\_feedback\_handler()}}
+{\footnotesize\ttfamily \label{main_8c_a7f5b876e4dc929696275b96572567370} 
+void status\+\_\+feedback\+\_\+handler (\begin{DoxyParamCaption}\item[{uint32\+\_\+t}]{timer}{}\end{DoxyParamCaption})}
+
+
+
+Blinks a light to show how long the button has been held. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em timer} & Time held in milliseconds. \\
+\hline
+\end{DoxyParams}
+\Hypertarget{main_8c_a16c77f12ee978fb5f1d608fa85a823d8}\index{main.c@{main.c}!unit\_duration\_receive\_ui@{unit\_duration\_receive\_ui}}
+\index{unit\_duration\_receive\_ui@{unit\_duration\_receive\_ui}!main.c@{main.c}}
+\doxysubsubsection{\texorpdfstring{unit\_duration\_receive\_ui()}{unit\_duration\_receive\_ui()}}
+{\footnotesize\ttfamily \label{main_8c_a16c77f12ee978fb5f1d608fa85a823d8} 
+void unit\+\_\+duration\+\_\+receive\+\_\+ui (\begin{DoxyParamCaption}\item[{uint8\+\_\+t}]{unit}{}\end{DoxyParamCaption})}
+
+
+
+Shows the current dot speed on the screen. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em unit} & Dot length in milliseconds. \\
+\hline
+\end{DoxyParams}
+\Hypertarget{main_8c_a2c2c11f51fdaf97ef772ec39e03f8f3e}\index{main.c@{main.c}!update\_buffer\_ui@{update\_buffer\_ui}}
+\index{update\_buffer\_ui@{update\_buffer\_ui}!main.c@{main.c}}
+\doxysubsubsection{\texorpdfstring{update\_buffer\_ui()}{update\_buffer\_ui()}}
+{\footnotesize\ttfamily \label{main_8c_a2c2c11f51fdaf97ef772ec39e03f8f3e} 
+void update\+\_\+buffer\+\_\+ui (\begin{DoxyParamCaption}\item[{uint8\+\_\+t}]{idx}{, }\item[{char \texorpdfstring{$\ast$}{*}}]{buffer}{}\end{DoxyParamCaption})}
+
+
+
+Updates the OLED screen only when the text length changes. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em idx} & Current number of characters in the text. \\
+\hline
+{\em buffer} & The text string to show. \\
+\hline
+\end{DoxyParams}
+
+
+\label{main_8c_doc-var-members}
+\Hypertarget{main_8c_doc-var-members}
+\doxysubsection{Variable Documentation}
+\Hypertarget{main_8c_a4ed8933ec9dcdfbe97cb2ed15c349e12}\index{main.c@{main.c}!rx@{rx}}
+\index{rx@{rx}!main.c@{main.c}}
+\doxysubsubsection{\texorpdfstring{rx}{rx}}
+{\footnotesize\ttfamily \label{main_8c_a4ed8933ec9dcdfbe97cb2ed15c349e12} 
+\doxymbox{\hyperlink{struct_receive_state__t}{Receive\+State\+\_\+t}} rx}
+
+{\bfseries Initial value:\+}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{=\ \{.ldr\_val\ =\ 0,}
+\DoxyCodeLine{\ \ \ .threshold\_idx\ =\ 0,}
+\DoxyCodeLine{\ \ \ .unit\_duration\ =\ 130,}
+\DoxyCodeLine{\ \ \ .temp\_pattern\ =\ \{0\},}
+\DoxyCodeLine{\ \ \ .pattern\_idx\ =\ 0,}
+\DoxyCodeLine{\ \ \ .pulse\_start\ =\ 0,}
+\DoxyCodeLine{\ \ \ .gap\_start\ =\ 0,}
+\DoxyCodeLine{\ \ \ .is\_light\_on\ =\ \textcolor{keyword}{false},}
+\DoxyCodeLine{\ \ \ .buffer\ =\ \{0\},}
+\DoxyCodeLine{\ \ \ .index\ =\ 0,}
+\DoxyCodeLine{\ \ \ .found\_char\ =\ \textcolor{charliteral}{'\(\backslash\)0'},}
+\DoxyCodeLine{\ \ \ .preset\_idx\ =\ 0,}
+\DoxyCodeLine{\ \ \ .press\_start\_time\ =\ 0,}
+\DoxyCodeLine{\ \ \ .button\_was\_pressed\ =\ \textcolor{keyword}{false}\}}
+
+\end{DoxyCode}
+
+
+Stores ADC values, pulse timings, and the decoded Morse text. 
+
+\Hypertarget{main_8c_a2527444bec351073592e964617fcf54d}\index{main.c@{main.c}!sys@{sys}}
+\index{sys@{sys}!main.c@{main.c}}
+\doxysubsubsection{\texorpdfstring{sys}{sys}}
+{\footnotesize\ttfamily \label{main_8c_a2527444bec351073592e964617fcf54d} 
+\doxymbox{\hyperlink{struct_system_state__t}{System\+State\+\_\+t}} sys}
+
+{\bfseries Initial value:\+}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{=\ \{.current\_mode\ =\ MODE\_IDLE,}
+\DoxyCodeLine{\ \ \ .prev\_mode\_sw\_state\ =\ GPIO\_PIN\_SET\}}
+
+\end{DoxyCode}
+
+
+Tracks the current system mode and the mode switch state. 
+
+\Hypertarget{main_8c_a2e7f20a7676b3cd753a70a43355e05a0}\index{main.c@{main.c}!tx@{tx}}
+\index{tx@{tx}!main.c@{main.c}}
+\doxysubsubsection{\texorpdfstring{tx}{tx}}
+{\footnotesize\ttfamily \label{main_8c_a2e7f20a7676b3cd753a70a43355e05a0} 
+\doxymbox{\hyperlink{struct_transmit_state__t}{Transmit\+State\+\_\+t}} tx}
+
+{\bfseries Initial value:\+}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{=\ \{.buffer\ =\ \{0\},}
+\DoxyCodeLine{\ \ \ .index\ =\ 0,}
+\DoxyCodeLine{\ \ \ .letter\_idx\ =\ 0,}
+\DoxyCodeLine{\ \ \ .current\_char\ =\ \textcolor{charliteral}{'A'},}
+\DoxyCodeLine{\ \ \ .ready\_to\_send\ =\ \textcolor{keyword}{false},}
+\DoxyCodeLine{\ \ \ .confirm\_send\ =\ \textcolor{keyword}{false},}
+\DoxyCodeLine{\ \ \ .ready\_to\_reset\ =\ \textcolor{keyword}{false},}
+\DoxyCodeLine{\ \ \ .pattern\_ptr\ =\ NULL,}
+\DoxyCodeLine{\ \ \ .pattern\_length\ =\ 0,}
+\DoxyCodeLine{\ \ \ .is\_running\ =\ \textcolor{keyword}{false},}
+\DoxyCodeLine{\ \ \ .msg\_ptr\ =\ 0,}
+\DoxyCodeLine{\ \ \ .step\ =\ 0\}}
+
+\end{DoxyCode}
+
+
+Stores the text to send, encoder positions, and sending status. 
+

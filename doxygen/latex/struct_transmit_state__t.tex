@@ -1,0 +1,58 @@
+\doxysection{Transmit\+State\+\_\+t Struct Reference}
+\hypertarget{struct_transmit_state__t}{}\label{struct_transmit_state__t}\index{TransmitState\_t@{TransmitState\_t}}
+
+
+Holds all variables needed for the text sending process.  
+
+
+
+
+{\ttfamily \+\#include $<$main.\+h$>$}
+
+\doxysubsubsection*{Data Fields}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{struct_transmit_state__t_ad648e4a5cb1cb10e3c8369ad21932cc1}\label{struct_transmit_state__t_ad648e4a5cb1cb10e3c8369ad21932cc1} 
+char {\bfseries buffer} \+[\doxymbox{\hyperlink{main_8h_a1d5dab30b404fab91608086105afc78c}{MAX\+\_\+\+BUFFER}}]\+
+\item 
+\Hypertarget{struct_transmit_state__t_a852b86a2eaee9852ada7a43e61e311a2}\label{struct_transmit_state__t_a852b86a2eaee9852ada7a43e61e311a2} 
+uint16\+\_\+t {\bfseries index}
+\item 
+\Hypertarget{struct_transmit_state__t_a0e1a35e4a0fb31de0a1c1d54f9e0cbe1}\label{struct_transmit_state__t_a0e1a35e4a0fb31de0a1c1d54f9e0cbe1} 
+uint32\+\_\+t {\bfseries letter\+\_\+idx}
+\item 
+\Hypertarget{struct_transmit_state__t_a546866b4b291db88774effaef5e7dfbe}\label{struct_transmit_state__t_a546866b4b291db88774effaef5e7dfbe} 
+char {\bfseries current\+\_\+char}
+\item 
+\Hypertarget{struct_transmit_state__t_a1b20a7c2dd7dfebe93282fc9816e7cd4}\label{struct_transmit_state__t_a1b20a7c2dd7dfebe93282fc9816e7cd4} 
+bool {\bfseries ready\+\_\+to\+\_\+send}
+\item 
+\Hypertarget{struct_transmit_state__t_a13e97cd63aa1cf8b4a234b9041ff0ac1}\label{struct_transmit_state__t_a13e97cd63aa1cf8b4a234b9041ff0ac1} 
+bool {\bfseries confirm\+\_\+send}
+\item 
+\Hypertarget{struct_transmit_state__t_a854ef132a8e77d70886fe63600066b5f}\label{struct_transmit_state__t_a854ef132a8e77d70886fe63600066b5f} 
+bool {\bfseries ready\+\_\+to\+\_\+reset}
+\item 
+\Hypertarget{struct_transmit_state__t_a809970cc2837973dc96fce5f4e466d36}\label{struct_transmit_state__t_a809970cc2837973dc96fce5f4e466d36} 
+volatile const uint16\+\_\+t \texorpdfstring{$\ast$}{*} {\bfseries pattern\+\_\+ptr}
+\item 
+\Hypertarget{struct_transmit_state__t_ad07c5caabc2ecc5e472e2833c94fe205}\label{struct_transmit_state__t_ad07c5caabc2ecc5e472e2833c94fe205} 
+volatile size\+\_\+t {\bfseries pattern\+\_\+length}
+\item 
+\Hypertarget{struct_transmit_state__t_a7817b7e6491fa89f1728157d0d01b068}\label{struct_transmit_state__t_a7817b7e6491fa89f1728157d0d01b068} 
+volatile bool {\bfseries is\+\_\+running}
+\item 
+\Hypertarget{struct_transmit_state__t_ad65dba1f6bcfa0e89898c40803e2c179}\label{struct_transmit_state__t_ad65dba1f6bcfa0e89898c40803e2c179} 
+volatile size\+\_\+t {\bfseries msg\+\_\+ptr}
+\item 
+\Hypertarget{struct_transmit_state__t_a57edb8cf65958d047809fe329b084880}\label{struct_transmit_state__t_a57edb8cf65958d047809fe329b084880} 
+volatile uint16\+\_\+t {\bfseries step}
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+Holds all variables needed for the text sending process. 
+
+The documentation for this struct was generated from the following file:\+\begin{DoxyCompactItemize}
+\item 
+Core/\+\+Inc/\+\doxymbox{\hyperlink{main_8h}{main.\+h}}\end{DoxyCompactItemize}

@@ -1,0 +1,100 @@
+\doxysection{Core/\+\+Src/\+morse\+\_\+data.c File Reference}
+\hypertarget{morse__data_8c}{}\label{morse__data_8c}\index{Core/Src/morse\_data.c@{Core/Src/morse\_data.c}}
+{\ttfamily \+\#include "{}main.\+h"{}}\newline
+\doxysubsubsection*{Variables}
+\begin{DoxyCompactItemize}
+\item 
+const char \texorpdfstring{$\ast$}{*} \doxymbox{\hyperlink{morse__data_8c_a8dcc7adefebd37fe9ccc697dd008b382}{rx\+\_\+morse\+\_\+map}} \+[$\,$]\+
+\item 
+const \doxymbox{\hyperlink{struct_morse_mapping__t}{Morse\+Mapping\+\_\+t}} \doxymbox{\hyperlink{morse__data_8c_afc82f84dfc38804d9f976028d80a1a5c}{morse\+\_\+lookup\+\_\+table}} \+[$\,$]\+
+\item 
+const size\+\_\+t \doxymbox{\hyperlink{morse__data_8c_a6a9244c3adeb8bcc84e33b1fd0621969}{morse\+\_\+lookup\+\_\+length}} = sizeof(\doxymbox{\hyperlink{morse__data_8c_afc82f84dfc38804d9f976028d80a1a5c}{morse\+\_\+lookup\+\_\+table}}) /\+ sizeof(\doxymbox{\hyperlink{morse__data_8c_afc82f84dfc38804d9f976028d80a1a5c}{morse\+\_\+lookup\+\_\+table}}\+[0]\+)
+\end{DoxyCompactItemize}
+
+
+\label{morse__data_8c_doc-var-members}
+\Hypertarget{morse__data_8c_doc-var-members}
+\doxysubsection{Variable Documentation}
+\Hypertarget{morse__data_8c_a6a9244c3adeb8bcc84e33b1fd0621969}\index{morse\_data.c@{morse\_data.c}!morse\_lookup\_length@{morse\_lookup\_length}}
+\index{morse\_lookup\_length@{morse\_lookup\_length}!morse\_data.c@{morse\_data.c}}
+\doxysubsubsection{\texorpdfstring{morse\_lookup\_length}{morse\_lookup\_length}}
+{\footnotesize\ttfamily \label{morse__data_8c_a6a9244c3adeb8bcc84e33b1fd0621969} 
+const size\+\_\+t morse\+\_\+lookup\+\_\+length = sizeof(\doxymbox{\hyperlink{morse__data_8c_afc82f84dfc38804d9f976028d80a1a5c}{morse\+\_\+lookup\+\_\+table}}) /\+ sizeof(\doxymbox{\hyperlink{morse__data_8c_afc82f84dfc38804d9f976028d80a1a5c}{morse\+\_\+lookup\+\_\+table}}\+[0]\+)}
+
+\Hypertarget{morse__data_8c_afc82f84dfc38804d9f976028d80a1a5c}\index{morse\_data.c@{morse\_data.c}!morse\_lookup\_table@{morse\_lookup\_table}}
+\index{morse\_lookup\_table@{morse\_lookup\_table}!morse\_data.c@{morse\_data.c}}
+\doxysubsubsection{\texorpdfstring{morse\_lookup\_table}{morse\_lookup\_table}}
+{\footnotesize\ttfamily \label{morse__data_8c_afc82f84dfc38804d9f976028d80a1a5c} 
+const \doxymbox{\hyperlink{struct_morse_mapping__t}{Morse\+Mapping\+\_\+t}} morse\+\_\+lookup\+\_\+table\+[$\,$]\+}
+
+{\bfseries Initial value:\+}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ =\ \{}
+\DoxyCodeLine{\ \ \ \ \{\textcolor{charliteral}{'A'},\ pattern\_a,\ \textcolor{keyword}{sizeof}(pattern\_a)/\textcolor{keyword}{sizeof}(uint16\_t)\},}
+\DoxyCodeLine{\ \ \ \ \{\textcolor{charliteral}{'B'},\ pattern\_b,\ \textcolor{keyword}{sizeof}(pattern\_b)/\textcolor{keyword}{sizeof}(uint16\_t)\},}
+\DoxyCodeLine{\ \ \ \ \{\textcolor{charliteral}{'C'},\ pattern\_c,\ \textcolor{keyword}{sizeof}(pattern\_c)/\textcolor{keyword}{sizeof}(uint16\_t)\},}
+\DoxyCodeLine{\ \ \ \ \{\textcolor{charliteral}{'D'},\ pattern\_d,\ \textcolor{keyword}{sizeof}(pattern\_d)/\textcolor{keyword}{sizeof}(uint16\_t)\},}
+\DoxyCodeLine{\ \ \ \ \{\textcolor{charliteral}{'E'},\ pattern\_e,\ \textcolor{keyword}{sizeof}(pattern\_e)/\textcolor{keyword}{sizeof}(uint16\_t)\},}
+\DoxyCodeLine{\ \ \ \ \{\textcolor{charliteral}{'F'},\ pattern\_f,\ \textcolor{keyword}{sizeof}(pattern\_f)/\textcolor{keyword}{sizeof}(uint16\_t)\},}
+\DoxyCodeLine{\ \ \ \ \{\textcolor{charliteral}{'G'},\ pattern\_g,\ \textcolor{keyword}{sizeof}(pattern\_g)/\textcolor{keyword}{sizeof}(uint16\_t)\},}
+\DoxyCodeLine{\ \ \ \ \{\textcolor{charliteral}{'H'},\ pattern\_h,\ \textcolor{keyword}{sizeof}(pattern\_h)/\textcolor{keyword}{sizeof}(uint16\_t)\},}
+\DoxyCodeLine{\ \ \ \ \{\textcolor{charliteral}{'I'},\ pattern\_i,\ \textcolor{keyword}{sizeof}(pattern\_i)/\textcolor{keyword}{sizeof}(uint16\_t)\},}
+\DoxyCodeLine{\ \ \ \ \{\textcolor{charliteral}{'J'},\ pattern\_j,\ \textcolor{keyword}{sizeof}(pattern\_j)/\textcolor{keyword}{sizeof}(uint16\_t)\},}
+\DoxyCodeLine{\ \ \ \ \{\textcolor{charliteral}{'K'},\ pattern\_k,\ \textcolor{keyword}{sizeof}(pattern\_k)/\textcolor{keyword}{sizeof}(uint16\_t)\},}
+\DoxyCodeLine{\ \ \ \ \{\textcolor{charliteral}{'L'},\ pattern\_l,\ \textcolor{keyword}{sizeof}(pattern\_l)/\textcolor{keyword}{sizeof}(uint16\_t)\},}
+\DoxyCodeLine{\ \ \ \ \{\textcolor{charliteral}{'M'},\ pattern\_m,\ \textcolor{keyword}{sizeof}(pattern\_m)/\textcolor{keyword}{sizeof}(uint16\_t)\},}
+\DoxyCodeLine{\ \ \ \ \{\textcolor{charliteral}{'N'},\ pattern\_n,\ \textcolor{keyword}{sizeof}(pattern\_n)/\textcolor{keyword}{sizeof}(uint16\_t)\},}
+\DoxyCodeLine{\ \ \ \ \{\textcolor{charliteral}{'O'},\ pattern\_o,\ \textcolor{keyword}{sizeof}(pattern\_o)/\textcolor{keyword}{sizeof}(uint16\_t)\},}
+\DoxyCodeLine{\ \ \ \ \{\textcolor{charliteral}{'P'},\ pattern\_p,\ \textcolor{keyword}{sizeof}(pattern\_p)/\textcolor{keyword}{sizeof}(uint16\_t)\},}
+\DoxyCodeLine{\ \ \ \ \{\textcolor{charliteral}{'Q'},\ pattern\_q,\ \textcolor{keyword}{sizeof}(pattern\_q)/\textcolor{keyword}{sizeof}(uint16\_t)\},}
+\DoxyCodeLine{\ \ \ \ \{\textcolor{charliteral}{'R'},\ pattern\_r,\ \textcolor{keyword}{sizeof}(pattern\_r)/\textcolor{keyword}{sizeof}(uint16\_t)\},}
+\DoxyCodeLine{\ \ \ \ \{\textcolor{charliteral}{'S'},\ pattern\_s,\ \textcolor{keyword}{sizeof}(pattern\_s)/\textcolor{keyword}{sizeof}(uint16\_t)\},}
+\DoxyCodeLine{\ \ \ \ \{\textcolor{charliteral}{'T'},\ pattern\_t,\ \textcolor{keyword}{sizeof}(pattern\_t)/\textcolor{keyword}{sizeof}(uint16\_t)\},}
+\DoxyCodeLine{\ \ \ \ \{\textcolor{charliteral}{'U'},\ pattern\_u,\ \textcolor{keyword}{sizeof}(pattern\_u)/\textcolor{keyword}{sizeof}(uint16\_t)\},}
+\DoxyCodeLine{\ \ \ \ \{\textcolor{charliteral}{'V'},\ pattern\_v,\ \textcolor{keyword}{sizeof}(pattern\_v)/\textcolor{keyword}{sizeof}(uint16\_t)\},}
+\DoxyCodeLine{\ \ \ \ \{\textcolor{charliteral}{'W'},\ pattern\_w,\ \textcolor{keyword}{sizeof}(pattern\_w)/\textcolor{keyword}{sizeof}(uint16\_t)\},}
+\DoxyCodeLine{\ \ \ \ \{\textcolor{charliteral}{'X'},\ pattern\_x,\ \textcolor{keyword}{sizeof}(pattern\_x)/\textcolor{keyword}{sizeof}(uint16\_t)\},}
+\DoxyCodeLine{\ \ \ \ \{\textcolor{charliteral}{'Y'},\ pattern\_y,\ \textcolor{keyword}{sizeof}(pattern\_y)/\textcolor{keyword}{sizeof}(uint16\_t)\},}
+\DoxyCodeLine{\ \ \ \ \{\textcolor{charliteral}{'Z'},\ pattern\_z,\ \textcolor{keyword}{sizeof}(pattern\_z)/\textcolor{keyword}{sizeof}(uint16\_t)\},}
+\DoxyCodeLine{\ \ \ \ \{\textcolor{charliteral}{'\ '},\ pattern\_space,\ \textcolor{keyword}{sizeof}(pattern\_space)/\textcolor{keyword}{sizeof}(uint16\_t)\}}
+\DoxyCodeLine{\}}
+
+\end{DoxyCode}
+\Hypertarget{morse__data_8c_a8dcc7adefebd37fe9ccc697dd008b382}\index{morse\_data.c@{morse\_data.c}!rx\_morse\_map@{rx\_morse\_map}}
+\index{rx\_morse\_map@{rx\_morse\_map}!morse\_data.c@{morse\_data.c}}
+\doxysubsubsection{\texorpdfstring{rx\_morse\_map}{rx\_morse\_map}}
+{\footnotesize\ttfamily \label{morse__data_8c_a8dcc7adefebd37fe9ccc697dd008b382} 
+const char\texorpdfstring{$\ast$}{*} rx\+\_\+morse\+\_\+map\+[$\,$]\+}
+
+{\bfseries Initial value:\+}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ =\ \{}
+\DoxyCodeLine{\ \ \ \ \textcolor{stringliteral}{"{}.-\/"{}},\ \ \ \ }
+\DoxyCodeLine{\ \ \ \ \textcolor{stringliteral}{"{}-\/..."{}},\ \ }
+\DoxyCodeLine{\ \ \ \ \textcolor{stringliteral}{"{}-\/.-\/."{}},\ \ }
+\DoxyCodeLine{\ \ \ \ \textcolor{stringliteral}{"{}-\/.."{}},\ \ \ }
+\DoxyCodeLine{\ \ \ \ \textcolor{stringliteral}{"{}."{}},\ \ \ \ \ }
+\DoxyCodeLine{\ \ \ \ \textcolor{stringliteral}{"{}..-\/."{}},\ \ }
+\DoxyCodeLine{\ \ \ \ \textcolor{stringliteral}{"{}-\/-\/."{}},\ \ \ }
+\DoxyCodeLine{\ \ \ \ \textcolor{stringliteral}{"{}...."{}},\ \ }
+\DoxyCodeLine{\ \ \ \ \textcolor{stringliteral}{"{}.."{}},\ \ \ \ }
+\DoxyCodeLine{\ \ \ \ \textcolor{stringliteral}{"{}.-\/-\/-\/"{}},\ \ }
+\DoxyCodeLine{\ \ \ \ \textcolor{stringliteral}{"{}-\/.-\/"{}},\ \ \ }
+\DoxyCodeLine{\ \ \ \ \textcolor{stringliteral}{"{}.-\/.."{}},\ \ }
+\DoxyCodeLine{\ \ \ \ \textcolor{stringliteral}{"{}-\/-\/"{}},\ \ \ \ }
+\DoxyCodeLine{\ \ \ \ \textcolor{stringliteral}{"{}-\/."{}},\ \ \ \ }
+\DoxyCodeLine{\ \ \ \ \textcolor{stringliteral}{"{}-\/-\/-\/"{}},\ \ \ }
+\DoxyCodeLine{\ \ \ \ \textcolor{stringliteral}{"{}.-\/-\/."{}},\ \ }
+\DoxyCodeLine{\ \ \ \ \textcolor{stringliteral}{"{}-\/-\/.-\/"{}},\ \ }
+\DoxyCodeLine{\ \ \ \ \textcolor{stringliteral}{"{}.-\/."{}},\ \ \ }
+\DoxyCodeLine{\ \ \ \ \textcolor{stringliteral}{"{}..."{}},\ \ \ }
+\DoxyCodeLine{\ \ \ \ \textcolor{stringliteral}{"{}-\/"{}},\ \ \ \ \ }
+\DoxyCodeLine{\ \ \ \ \textcolor{stringliteral}{"{}..-\/"{}},\ \ \ }
+\DoxyCodeLine{\ \ \ \ \textcolor{stringliteral}{"{}...-\/"{}},\ \ }
+\DoxyCodeLine{\ \ \ \ \textcolor{stringliteral}{"{}.-\/-\/"{}},\ \ \ }
+\DoxyCodeLine{\ \ \ \ \textcolor{stringliteral}{"{}-\/..-\/"{}},\ \ }
+\DoxyCodeLine{\ \ \ \ \textcolor{stringliteral}{"{}-\/.-\/-\/"{}},\ \ }
+\DoxyCodeLine{\ \ \ \ \textcolor{stringliteral}{"{}-\/-\/.."{}}\ \ \ }
+\DoxyCodeLine{\}}
+
+\end{DoxyCode}

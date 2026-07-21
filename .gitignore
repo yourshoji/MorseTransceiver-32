@@ -1,0 +1,20 @@
+# platform io
+.pio/
+.vscode/
+*.orig
+
+# stm32 & cubemx
+.mxproject
+
+# build outputs
+*.o
+*.elf
+*.bin
+*.hex
+*.map
+*.lst
+*.su
+
+# OS garbage
+Thumbs.db
+.DS_Store
