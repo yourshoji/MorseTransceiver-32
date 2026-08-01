@@ -1,0 +1,5 @@
+-ICore/Inc
+-IDrivers/CMSIS/Device/ST/STM32F1xx/Include
+-IDrivers/CMSIS/Include
+-IDrivers/STM32F1xx_HAL_Driver/Inc
+-DSTM32F103xB
