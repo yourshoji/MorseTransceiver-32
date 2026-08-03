@@ -36,6 +36,47 @@ extern "C" {
 
 /* USER CODE END Includes */
 
+/* USER CODE BEGIN Private defines */
+
+/// @brief System limits and configuration sizes.
+#define MAX_BUFFER 128
+#define TOTAL_PRESETS 3
+
+/* NOTE: Hardware pin definitions are grouped here for easy board mapping. */
+#define DOT_PORT GPIOB
+#define DOT_PIN_NUM 5U
+#define DOT_PIN (1U << DOT_PIN_NUM)
+#define DASH_PORT GPIOB
+#define DASH_PIN_NUM 10U
+#define DASH_PIN (1U << DASH_PIN_NUM)
+#define BUZZER_PORT GPIOB
+#define BUZZER_PIN_NUM 11U
+#define BUZZER_PIN (1U << BUZZER_PIN_NUM)
+#define MODE_SW_PORT GPIOA
+#define MODE_SW_PIN_NUM 2U
+#define MODE_SW_PIN (1U << MODE_SW_PIN_NUM)
+#define ENC_SW_PORT GPIOB
+#define ENC_SW_PIN_NUM 0U
+#define ENC_SW_PIN (1U << ENC_SW_PIN_NUM)
+#define LED1_PORT GPIOA
+#define LED1_PIN_NUM 5U
+#define LED1_PIN (1U << LED1_PIN_NUM)
+#define LED2_TIM (&htim4)
+#define LED2_CHANNEL TIM_CHANNEL_1
+#define LED3_PORT GPIOB
+#define LED3_PIN_NUM 12U
+#define LED3_PIN (1U << LED3_PIN_NUM)
+
+/// @brief Morse code timing constants measured in timer ticks (1 tick = 0.1
+/// ms).
+#define TIME_DOT 1300
+#define TIME_DASH 3900
+#define GAP_SYM 1300
+#define GAP_CHAR 3900
+#define GAP_WORD 9100
+
+/* USER CODE END Private defines */
+
 /* Exported types ------------------------------------------------------------*/
 /* USER CODE BEGIN ET */
 
@@ -118,43 +159,6 @@ extern const uint8_t unit_presets[TOTAL_PRESETS];
 
 /* Exported macro ------------------------------------------------------------*/
 /* USER CODE BEGIN EM */
-
-/// @brief System limits and configuration sizes.
-#define MAX_BUFFER 128
-#define TOTAL_PRESETS 3
-
-/* NOTE: Hardware pin definitions are grouped here for easy board mapping. */
-#define DOT_PORT GPIOB
-#define DOT_PIN_NUM 5U
-#define DOT_PIN (1U << DOT_PIN_NUM)
-#define DASH_PORT GPIOB
-#define DASH_PIN_NUM 10U
-#define DASH_PIN (1U << DASH_PIN_NUM)
-#define BUZZER_PORT GPIOB
-#define BUZZER_PIN_NUM 11U
-#define BUZZER_PIN (1U << BUZZER_PIN_NUM)
-#define MODE_SW_PORT GPIOA
-#define MODE_SW_PIN_NUM 2U
-#define MODE_SW_PIN (1U << MODE_SW_PIN_NUM)
-#define ENC_SW_PORT GPIOB
-#define ENC_SW_PIN_NUM 0U
-#define ENC_SW_PIN (1U << ENC_SW_PIN_NUM)
-#define LED1_PORT GPIOA
-#define LED1_PIN_NUM 5U
-#define LED1_PIN (1U << LED1_PIN_NUM)
-#define LED2_TIM (&htim4)
-#define LED2_CHANNEL TIM_CHANNEL_1
-#define LED3_PORT GPIOB
-#define LED3_PIN_NUM 12U
-#define LED3_PIN (1U << LED3_PIN_NUM)
-
-/// @brief Morse code timing constants measured in timer ticks (1 tick = 0.1
-/// ms).
-#define TIME_DOT 1300
-#define TIME_DASH 3900
-#define GAP_SYM 1300
-#define GAP_CHAR 3900
-#define GAP_WORD 9100
 
 /* USER CODE END EM */
 
