@@ -61,7 +61,10 @@ Core/Src/adc.c \
 Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_adc.c \
 Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_adc_ex.c \
 Core/Src/i2c.c \
-Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_i2c.c
+Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_i2c.c \
+Core/Src/morse_data.c \
+Core/Src/ssd1306.c \
+Core/Src/ssd1306_fonts.c
 
 # ASM sources
 ASM_SOURCES =  \

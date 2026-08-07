@@ -152,7 +152,10 @@ int main(void) {
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
+  // I2C1_Init(); // Current ssd1306 library isnt made for bare-metal, so to
+  // skip the headache, I decide to continue using HAL-based I2C.
   ssd1306_Init();
   play_intro_ui();
 
@@ -212,6 +215,8 @@ int main(void) {
   ADC1->SQR3 = 1;
   ADC1->SMPR2 &= ~(0x7UL << 3);
   ADC1->SMPR2 |= (0x0UL << 3);
+  ADC1->CR2 |= (0x7UL << 17);
+  ADC1->CR2 |= ADC_CR2_EXTTRIG;
   ADC1->CR2 |= ADC_CR2_ADON;
   delay_ms(1);
   ADC1->CR2 |= ADC_CR2_CAL;
@@ -893,8 +898,8 @@ void I2C1_Init(void) {
 
   // 2. configure PB6 (SCL) and PB7 (SDA) as AF open-drain 50MHz
   // each pin takes 4 bits in CRL, PB6 starts at bit 24, PB7 at bit 28
-  GPIOB->CRL &= ~(0xFF << 24); // clear PB6 and PB7 bits
-  GPIOB->CRL |= (0xFF << 24);  // AF open-drain, 50MHz for both
+  GPIOB->CRH &= ~(0xFF << 0); // clear PB6 and PB7 bits
+  GPIOB->CRH |= (0xFF << 0);  // AF open-drain, 50MHz for both
 
   // 3. reset I2C1 peripheral
   I2C1->CR1 |= (1 << 15);  // SWRST = 1

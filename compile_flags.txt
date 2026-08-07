@@ -1,5 +1,7 @@
+--target=arm-none-eabi
 -ICore/Inc
 -IDrivers/CMSIS/Device/ST/STM32F1xx/Include
 -IDrivers/CMSIS/Include
 -IDrivers/STM32F1xx_HAL_Driver/Inc
 -DSTM32F103xB
+-IC:/Program Files (x86)/Arm/GNU Toolchain mingw-w64-i686-arm-none-eabi/arm-none-eabi/include
