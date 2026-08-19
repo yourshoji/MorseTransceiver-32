@@ -3,7 +3,7 @@
 A HAL-based embedded C project that converts an STM32F103 MCU into a multimode Morse code transceiver.
 
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/bfe344a3-8355-466d-ac3b-50dcfe67205c" alt="BOARD" height="500" width="750">
+  <img width="750" height="500" alt="Board" src="https://github.com/user-attachments/assets/7ec91233-3fce-4ac0-89f7-128f45f3a5ef" />
 </p>
 
 ## Hardware Stack
@@ -28,9 +28,13 @@ A HAL-based embedded C project that converts an STM32F103 MCU into a multimode M
 * `morse_data.c`: Isolated, read-only flash memory data layer containing timing arrays and the master lookup table.
 
 <p align="center">
+  <img width="49%" height="400" alt="Image" src="https://github.com/user-attachments/assets/bf2a39af-7552-49e9-97da-df9fd54cbfd0" />
+  <img width="49%" height="1000" alt="Image" src="https://github.com/user-attachments/assets/c6c80486-1730-40d0-b8fe-f8a1d3e5ed3a" />
+</p>
+
+<p align="center">
   <img src="https://github.com/user-attachments/assets/bc285bfc-8fdc-46b1-8c65-d5c4eaa7f954" alt="IDLE" height="300" width="49%">
   <img src="https://github.com/user-attachments/assets/e81b5cd9-4a0e-4e04-9213-df8d084afe3d" alt="SELECT" height="300" width="49%">
-
 </p>
 
 <p align="center">
