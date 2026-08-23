@@ -1,35 +1,67 @@
 # MCT-32: STM32 Morse Code Transceiver
 
-A HAL-based embedded C project that converts an STM32F103 MCU into a multimode Morse code transceiver.
+A four-mode Morse code transceiver built on an STM32F103, written in both HAL and bare-metal, register-level C (different branches).
 
 <p align="center">
-  <img width="750" height="500" alt="Board" src="https://github.com/user-attachments/assets/7ec91233-3fce-4ac0-89f7-128f45f3a5ef" />
+  <!-- <img width="750" height="500" alt="Board" src="https://github.com/user-attachments/assets/7ec91233-3fce-4ac0-89f7-128f45f3a5ef" /> -->
+  <div style="width: 300px; height: 200px; overflow: hidden;">
+  <img src="https://github.com/user-attachments/assets/dfbb7c80-f490-468d-ac29-a76053d93a36" 
+       alt="Demo" 
+       style="transform: scale(1.25) translate(-20px, -30px); transform-origin: top left;" />
+</div>
 </p>
 
-## Hardware Stack
-* **MCU:** STM32F1 Series (STM32F103/STM32F1xx)
-* **Display:** 0.96" SSD1306 OLED (I2C)
-* **Inputs:**
-    * LDR (Light Dependent Resistor) via ADC for Morse reception.
-    * Rotary Encoder & Encoder Button (EC11) for UI navigation and threshold tuning.
-    * Push-Button for mode switching.
-    * Touch Sensors (TTP223) as dual paddles for sending dots and dashes.
-* **Outputs:** Active Buzzer (SFM-20B), status LEDs.
+## What this is
+A Morse code transceiver on an STM32F103, written in both implementations, HAL and bare-metal C. It sends Morse code via an interrupt-driven timer (TIM2) that toggles output on every Morse timing unit without blocking the main loop, receives by polling an LDR through the ADC and measuring pulse widths to decode dots and dashes in real time, and reads user input through a polled rotary encoder (TIM3 encoder mode) and two touch-sensor paddles for manual keying.
 
-## System Modes
-1.  **MODE_IDLE:** Standby state and system uptime tracking.
-2.  **MODE_SELECT:** Rotary encoder-driven text entry. Select characters A-Z and a gap (' ') to transmit them automatically via LED/Buzzer.
-3.  **MODE_RECEIVE:** Uses the LDR to read incoming light flashes, dynamically tracking pulse/gap widths to decode standard Morse back into ASCII text. Features tunable unit durations (130ms, 150ms, 200ms) and ADC threshold calibration.
-4.  **MODE_MANUAL:** Direct hardware keyer mode using the physical Dot/Dash paddles with software debouncing and precise gap timing enforcement.
+## System modes
 
-## Software Architecture
-* `main.h`: Hardware mappings, macros, and strict typedefs for system states (`SystemState_t`, `TransmitState_t`, `ReceiveState_t`).
-* `main.c`: Core state machine, hardware polling, ADC conversion routines, and `HAL_TIM_PeriodElapsedCallback` for non-blocking Morse transmission.
-* `morse_data.c`: Isolated, read-only flash memory data layer containing timing arrays and the master lookup table.
+The system is a single state machine (`SystemState_t`), switched between modes on a physical button press.
+
+| Mode | Description |
+| --- | --- |
+| **IDLE** | standby; tracks system uptime on the OLED. |
+| **SELECT** | a rotary encoder scrolls through the alphabet; a button commits characters to a message buffer. On send, TIM2 fires an interrupt on every Morse unit boundary, toggling buzzer/LED without blocking the main loop. |
+| **RECEIVE** | an LDR is polled through ADC1; pulse and gap durations are measured against a tunable unit length to decode dots, dashes, letter breaks, and word breaks back into text. |
+| **MANUAL** | two touch sensors act as a hand key, software-debounced, with dot/dash/gap timing enforced in a small state machine. |
+
+## Hardware
+
+* **MCU:** STM32F103 (Cortex-M3)
+* **Display:** 0.96" SSD1306 OLED, I2C
+* **Sensing:** LDR via ADC1
+* **Input:** EC11 rotary encoder + button, separate mode-switch button, TTP223 touch sensors ×2
+* **Output:** active buzzer, status LEDs
+
+## Register-level subsystems
+
+Everything below is configured directly against peripheral registers, no HAL init calls:
+
+* **GPIO** - `CRL`/`CRH` for pin mode/speed/AF config, `IDR`/`BSRR` for reads/writes
+* **SysTick** - custom millisecond tick counter, drives `millis()`/`delay_ms()`
+* **I2C1** - manual peripheral reset, `CCR`/`TRISE` timing calculation for 100kHz standard mode
+* **TIM2** - basic timer with update interrupt, drives non-blocking Morse transmission timing
+* **TIM3** - encoder mode, reads the rotary encoder via `SMCR`/`CCMR1`/`CCER`
+* **TIM4** - PWM output for LED brightness in RECEIVE mode
+* **ADC1** - software-triggered single-channel conversion for the LDR
+
+## Code layout
+
+* `main.h` - pin mappings, register macros, system-state structs
+* `main.c` - the state machine, register-level peripheral setup, ISR logic
+* `stm32f1xx_it.c` - interrupt vector table entries, SysTick/TIM2 handlers
+* `morse_data.c` - Morse timing tables and character lookup table, read-only flash data
+
+---
+<p align="center">
+  <a href="https://youtu.be/C65Wo_ZKYWc" target="_blank">
+    <img src="https://img.youtube.com/vi/C65Wo_ZKYWc/hqdefault.jpg" alt="Watch Demo" width="1000" />
+  </a>
+</p>
 
 <p align="center">
-  <img width="49%" height="400" alt="Image" src="https://github.com/user-attachments/assets/bf2a39af-7552-49e9-97da-df9fd54cbfd0" />
   <img width="49%" height="1000" alt="Image" src="https://github.com/user-attachments/assets/c6c80486-1730-40d0-b8fe-f8a1d3e5ed3a" />
+  <img width="49%" height="500" alt="Image" src="https://github.com/user-attachments/assets/375366f1-46bb-4212-9504-7f8e5aef7c53" />
 </p>
 
 <p align="center">
@@ -43,6 +75,11 @@ A HAL-based embedded C project that converts an STM32F103 MCU into a multimode M
 </p>
 
 <p align="center">
-<img src="https://github.com/user-attachments/assets/e2db9e68-d184-465c-a4bc-ac89b4183816" alt="CIRCUIT DIAGRAM" height="1000" width=100%/>
+  <img src="https://github.com/user-attachments/assets/e2db9e68-d184-465c-a4bc-ac89b4183816" alt="CIRCUIT DIAGRAM" height="1000" width=100%/>
 </p>
-### [ ! ] System Showcase, Prototype, and PCB Design are coming soon.
+
+<!-- <p align="center">
+  <img width="49%" height="500" alt="Image" src="https://github.com/user-attachments/assets/cb8b3848-a3a1-43cf-b985-b54f5a98a3e7" />
+  <img width="49%" height="500" alt="Image" src="https://github.com/user-attachments/assets/f1d3dd8d-beb3-4772-b625-5b6da7c42562" />
+  <img width="49%" height="500" alt="Image" src="https://github.com/user-attachments/assets/778b86bb-ceb0-4345-a081-fe75678c050b" />
+</p> -->
